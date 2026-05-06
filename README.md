@@ -22,9 +22,13 @@ Su función es servir como aplicación de referencia para validar el pipeline De
 
 El repositorio contiene actualmente una aplicación Express mínima con endpoints básicos para comprobar su ejecución local.
 
-También incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
+La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-En este estado todavía no se ha incorporado Docker, GitHub Actions, herramientas de análisis de seguridad, manifiestos Kubernetes, observabilidad ni WAF.
+También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow valida la construcción de la imagen Docker en cada `push` y `pull_request`.
+
+También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
+
+En este estado todavía no se ha incorporado análisis estático, detección de secretos, escaneo de vulnerabilidades, publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
 
 ## Ejecución local
 
@@ -45,6 +49,28 @@ La API queda disponible por defecto en:
 ```text
 http://localhost:3000
 ```
+
+## Ejecución con Docker
+
+Construir la imagen localmente:
+
+```bash
+docker build -t secure-cicd-kubernetes:local .
+```
+
+Ejecutar el contenedor:
+
+```bash
+docker run --rm -p 3000:3000 secure-cicd-kubernetes:local
+```
+
+La API queda disponible por defecto en:
+
+```text
+http://localhost:3000
+```
+
+Docker permite empaquetar la aplicación como una imagen reproducible. Esta imagen será el artefacto que podrá analizarse en fases posteriores del pipeline DevSecOps y servirá como base para el futuro despliegue en Kubernetes.
 
 ## Endpoints disponibles
 
@@ -72,12 +98,11 @@ La evolución técnica del repositorio se realizará de forma progresiva, incorp
 
 Las siguientes fases previstas incluyen:
 
-- Dockerización de la aplicación de referencia.
-- Creación de un pipeline CI/CD con GitHub Actions.
 - Integración de análisis estático de código.
 - Detección de secretos y valores sensibles.
 - Escaneo de vulnerabilidades en imágenes Docker.
 - Definición de Security Gates basados en criticidad.
+- Publicación controlada de imágenes en un registry.
 - Despliegue automatizado en Kubernetes.
 - Incorporación de observabilidad mediante herramientas como Prometheus y Grafana.
 - Evaluación de mecanismos de protección perimetral, como un WAF.
