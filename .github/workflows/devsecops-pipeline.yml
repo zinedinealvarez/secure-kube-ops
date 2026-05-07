@@ -21,6 +21,7 @@ jobs:
         with:
           scan-type: image
           image-ref: secure-cicd-kubernetes:ci
+          scanners: vuln
           format: table
           exit-code: 0
           ignore-unfixed: true
