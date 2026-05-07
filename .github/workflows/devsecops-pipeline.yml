@@ -6,7 +6,7 @@ on:
 
 jobs:
   docker-build:
-    name: Build Docker image
+    name: Build and scan Docker image
     runs-on: ubuntu-latest
 
     steps:
@@ -15,3 +15,14 @@ jobs:
 
       - name: Build Docker image
         run: docker build -t secure-cicd-kubernetes:ci .
+
+      - name: Scan Docker image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secure-cicd-kubernetes:ci
+          format: table
+          exit-code: 0
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
