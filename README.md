@@ -24,11 +24,11 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un primer escaneo informativo de vulnerabilidades con Trivy.
+También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow valida la construcción de la imagen Docker en cada `push` y `pull_request`, ejecuta un escaneo informativo de vulnerabilidades con Trivy y aplica un Security Gate para vulnerabilidades de severidad `HIGH` o `CRITICAL`.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado todavía no se ha incorporado análisis estático, detección de secretos, bloqueo por criticidad, publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
+En este estado todavía no se ha incorporado análisis estático, detección de secretos, publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
 
 ## Ejecución local
 
@@ -74,9 +74,11 @@ Docker permite empaquetar la aplicación como una imagen reproducible. Esta imag
 
 ## Escaneo de imagen con Trivy
 
-El workflow **DevSecOps Pipeline** incluye un primer escaneo de la imagen Docker con Trivy. En esta fase, el escaneo tiene carácter informativo: muestra los resultados en GitHub Actions, pero no bloquea todavía el pipeline en función de la criticidad de las vulnerabilidades detectadas.
+El workflow **DevSecOps Pipeline** incluye un escaneo de la imagen Docker con Trivy dividido en dos fases.
 
-Este enfoque permite observar los hallazgos iniciales y preparar una política de Security Gates antes de convertir el escaneo en un control bloqueante.
+La primera fase tiene carácter informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear el pipeline.
+
+La segunda fase actúa como Security Gate: si Trivy detecta vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible, el workflow falla. Las vulnerabilidades `LOW` o `MEDIUM` no bloquean la ejecución.
 
 ## Endpoints disponibles
 
@@ -106,7 +108,6 @@ Las siguientes fases previstas incluyen:
 
 - Integración de análisis estático de código.
 - Detección de secretos y valores sensibles.
-- Definición de Security Gates basados en criticidad.
 - Publicación controlada de imágenes en un registry.
 - Despliegue automatizado en Kubernetes.
 - Incorporación de observabilidad mediante herramientas como Prometheus y Grafana.
