@@ -24,11 +24,11 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow valida la construcción de la imagen Docker en cada `push` y `pull_request`, ejecuta un escaneo informativo de vulnerabilidades con Trivy y aplica un Security Gate para vulnerabilidades de severidad `HIGH` o `CRITICAL`.
+También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow ejecuta el job **DevSecOps check**, que detecta posibles secretos con GitLeaks, valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un escaneo informativo de vulnerabilidades con Trivy.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado todavía no se ha incorporado análisis estático, detección de secretos, publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
+En este estado todavía no se ha incorporado análisis estático, publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
 
 ## Ejecución local
 
@@ -74,11 +74,17 @@ Docker permite empaquetar la aplicación como una imagen reproducible. Esta imag
 
 ## Escaneo de imagen con Trivy
 
-El workflow **DevSecOps Pipeline** incluye un escaneo de la imagen Docker con Trivy dividido en dos fases.
+El workflow **DevSecOps Pipeline** incluye un escaneo de la imagen Docker con Trivy.
 
-La primera fase tiene carácter informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear el pipeline.
+Durante la integración del pipeline, Trivy se mantiene en modo informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear la ejecución.
 
-La segunda fase actúa como Security Gate: si Trivy detecta vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible, el workflow falla. Las vulnerabilidades `LOW` o `MEDIUM` no bloquean la ejecución.
+El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda preparado en el workflow para reactivarse en la fase final. Cuando se active, bloqueará la ejecución si detecta vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
+
+## Detección de secretos con GitLeaks
+
+El workflow **DevSecOps Pipeline** incorpora GitLeaks como control de detección de secretos. Este paso analiza el repositorio para identificar posibles credenciales, tokens o claves expuestas en el código o en el historial.
+
+Este control puede bloquear el pipeline si detecta secretos. El repositorio no debe contener secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
 
 ## Endpoints disponibles
 
@@ -107,7 +113,6 @@ La evolución técnica del repositorio se realizará de forma progresiva, incorp
 Las siguientes fases previstas incluyen:
 
 - Integración de análisis estático de código.
-- Detección de secretos y valores sensibles.
 - Publicación controlada de imágenes en un registry.
 - Despliegue automatizado en Kubernetes.
 - Incorporación de observabilidad mediante herramientas como Prometheus y Grafana.

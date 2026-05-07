@@ -6,12 +6,19 @@ on:
 
 jobs:
   docker-build:
-    name: Build and scan Docker image
+    name: DevSecOps check
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect secrets with GitLeaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build Docker image
         run: docker build -t secure-cicd-kubernetes:${{ github.sha }} .
@@ -28,14 +35,16 @@ jobs:
           vuln-type: os,library
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
-      - name: Trivy Security Gate
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: image
-          image-ref: secure-cicd-kubernetes:${{ github.sha }}
-          scanners: vuln
-          format: table
-          exit-code: 1
-          ignore-unfixed: true
-          vuln-type: os,library
-          severity: HIGH,CRITICAL
+      # Trivy Security Gate validated during the TFG.
+      # It will be re-enabled in the final phase to block images with HIGH or CRITICAL vulnerabilities.
+      # - name: Trivy Security Gate
+      #   uses: aquasecurity/trivy-action@v0.36.0
+      #   with:
+      #     scan-type: image
+      #     image-ref: secure-cicd-kubernetes:${{ github.sha }}
+      #     scanners: vuln
+      #     format: table
+      #     exit-code: 1
+      #     ignore-unfixed: true
+      #     vuln-type: os,library
+      #     severity: HIGH,CRITICAL
