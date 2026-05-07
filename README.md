@@ -84,6 +84,8 @@ El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda 
 
 El workflow **DevSecOps Pipeline** incorpora GitLeaks como control de detección de secretos. Este paso analiza el repositorio para identificar posibles credenciales, tokens o claves expuestas en el código o en el historial.
 
+GitLeaks mantiene sus reglas por defecto mediante la configuración incluida en `.gitleaks.toml`. Además, se añade una regla controlada para detectar `TFG_FAKE_SECRET`, utilizada únicamente para validar el caso negativo del TFG y comprobar que el pipeline falla cuando aparece un patrón definido como secreto.
+
 Este control puede bloquear el pipeline si detecta secretos. El repositorio no debe contener secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
 
 ## Endpoints disponibles

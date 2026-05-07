@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[[rules]]
+id = "tfg-fake-secret"
+description = "Detecta el secreto falso controlado usado para validar GitLeaks en el TFG"
+regex = '''TFG_FAKE_SECRET\s*=\s*.+'''
+keywords = [
+  "TFG_FAKE_SECRET"
+]
