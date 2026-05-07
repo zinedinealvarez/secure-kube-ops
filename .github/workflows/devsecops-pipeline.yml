@@ -14,13 +14,13 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker image
-        run: docker build -t secure-cicd-kubernetes:ci .
+        run: docker build -t secure-cicd-kubernetes:${{ github.sha }} .
 
       - name: Scan Docker image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
-          image-ref: secure-cicd-kubernetes:ci
+          image-ref: secure-cicd-kubernetes:${{ github.sha }}
           scanners: vuln
           format: table
           exit-code: 0
