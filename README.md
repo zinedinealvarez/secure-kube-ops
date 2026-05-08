@@ -4,7 +4,7 @@ Trabajo Fin de Grado de Zinedine Álvarez Sais.
 
 Este repositorio contiene el desarrollo técnico del Trabajo Fin de Grado "Implementación de un ciclo de vida DevSecOps: Automatización de despliegues seguros y observabilidad en Kubernetes".
 
-El proyecto práctico desarrollado para validar este flujo se denomina **SecureKubeOps**. El nombre técnico utilizado para el paquete, la imagen Docker y las referencias operativas es `secure-kube-ops`.
+La solución práctica desarrollada para validar este flujo se denomina **SecureKubeOps**. Incluye el pipeline DevSecOps, los controles de seguridad, la construcción de imágenes Docker y las futuras fases de despliegue en Kubernetes y observabilidad. El nombre técnico utilizado para el paquete, la imagen Docker y las referencias operativas es `secure-kube-ops`.
 
 El proyecto se centra en el diseño y validación de un flujo DevSecOps para automatizar controles de seguridad dentro del ciclo de vida del software. La finalidad principal es construir un proceso CI/CD capaz de integrar análisis estático, detección de secretos, escaneo de imágenes Docker, controles de calidad basados en criticidad, despliegue en Kubernetes y observabilidad del sistema desplegado.
 
@@ -16,9 +16,9 @@ Para ello, el proyecto plantea una arquitectura basada en GitHub Actions como si
 
 ## Aplicación de referencia
 
-La aplicación incluida en este repositorio es una API mínima desarrollada con Node.js y Express.
+La aplicación incluida en este repositorio es una API mínima desarrollada con Node.js y Express dentro de la solución SecureKubeOps.
 
-Su función es servir como aplicación de referencia para validar el pipeline DevSecOps del TFG. No representa una aplicación de negocio compleja ni constituye el producto principal del proyecto. Su valor está en proporcionar una base sencilla y controlada sobre la que probar construcción, análisis, escaneo, aplicación de políticas y despliegue automatizado.
+Su función es servir como API de referencia para validar la solución SecureKubeOps dentro del TFG. No representa una aplicación de negocio compleja ni constituye el producto principal del proyecto. Su valor está en proporcionar una base sencilla y controlada sobre la que probar construcción, análisis, escaneo, aplicación de políticas y despliegue automatizado.
 
 ## Estado actual
 
@@ -112,7 +112,7 @@ Comprobar el estado de la aplicación:
 curl http://localhost:3000/health
 ```
 
-Consultar la versión de la aplicación de referencia:
+Consultar la versión de la API de referencia:
 
 ```bash
 curl http://localhost:3000/version

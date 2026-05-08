@@ -1,6 +1,6 @@
 # Datos de prueba y valores falsos
 
-Este documento describe los valores de prueba utilizados en la aplicación de referencia del Trabajo Fin de Grado "Implementación de un ciclo de vida DevSecOps: Automatización de despliegues seguros y observabilidad en Kubernetes".
+Este documento describe los valores de prueba utilizados en la API de referencia incluida en SecureKubeOps, la solución práctica del Trabajo Fin de Grado "Implementación de un ciclo de vida DevSecOps: Automatización de despliegues seguros y observabilidad en Kubernetes".
 
 La finalidad de estos valores es apoyar futuras fases del pipeline DevSecOps, especialmente la detección de secretos o configuraciones sensibles, sin utilizar credenciales reales.
 
@@ -10,7 +10,7 @@ La finalidad de estos valores es apoyar futuras fases del pipeline DevSecOps, es
 - No se deben commitear credenciales reales, tokens reales, claves privadas reales ni contraseñas reales.
 - Los valores de prueba deben ser claramente falsos.
 - Cualquier valor con apariencia sensible debe estar documentado.
-- La aplicación de referencia no debe depender de servicios externos reales para su ejecución local.
+- La API de referencia no debe depender de servicios externos reales para su ejecución local.
 
 ## Valores actuales
 

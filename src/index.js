@@ -11,9 +11,10 @@ app.get('/health', (req, res) => {
 
 app.get('/version', (req, res) => {
   res.json({
-    name: 'SecureKubeOps',
+    solution: 'SecureKubeOps',
+    component: 'reference-api',
     version: '0.1.0',
-    purpose: 'Reference application for the DevSecOps pipeline of the TFG'
+    purpose: 'Reference API for validating the SecureKubeOps DevSecOps solution'
   });
 });
 
@@ -28,5 +29,5 @@ app.get('/items', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`SecureKubeOps listening on port ${port}`);
+  console.log(`SecureKubeOps reference API listening on port ${port}`);
 });

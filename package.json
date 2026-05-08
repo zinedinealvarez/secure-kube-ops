@@ -1,7 +1,7 @@
 {
   "name": "secure-kube-ops",
   "version": "0.1.0",
-  "description": "SecureKubeOps reference application for validating a DevSecOps CI/CD pipeline.",
+  "description": "Reference API used to validate the SecureKubeOps DevSecOps solution.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"
