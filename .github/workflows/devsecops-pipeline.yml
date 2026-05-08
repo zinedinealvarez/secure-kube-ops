@@ -29,13 +29,13 @@ jobs:
         run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto .
 
       - name: Build Docker image
-        run: docker build -t secure-cicd-kubernetes:${{ github.sha }} .
+        run: docker build -t secure-kube-ops:${{ github.sha }} .
 
       - name: Informational Trivy scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
-          image-ref: secure-cicd-kubernetes:${{ github.sha }}
+          image-ref: secure-kube-ops:${{ github.sha }}
           scanners: vuln
           format: table
           exit-code: 0
@@ -49,7 +49,7 @@ jobs:
       #   uses: aquasecurity/trivy-action@v0.36.0
       #   with:
       #     scan-type: image
-      #     image-ref: secure-cicd-kubernetes:${{ github.sha }}
+      #     image-ref: secure-kube-ops:${{ github.sha }}
       #     scanners: vuln
       #     format: table
       #     exit-code: 1

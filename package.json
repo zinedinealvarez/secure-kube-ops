@@ -1,7 +1,7 @@
 {
-  "name": "secure-cicd-kubernetes-lab",
+  "name": "secure-kube-ops",
   "version": "0.1.0",
-  "description": "Minimal Express laboratory app for validating a DevSecOps CI/CD pipeline.",
+  "description": "SecureKubeOps reference application for validating a DevSecOps CI/CD pipeline.",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js"

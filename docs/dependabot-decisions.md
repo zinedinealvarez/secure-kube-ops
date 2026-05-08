@@ -2,7 +2,7 @@
 
 Este documento registra la revisión inicial de las Pull Requests generadas por Dependabot en el contexto del Trabajo Fin de Grado.
 
-La aplicación de este repositorio es una aplicación de referencia. Su finalidad no es actuar como producto principal, sino servir como base controlada para validar el pipeline DevSecOps. Por ese motivo, las actualizaciones propuestas por Dependabot se revisan teniendo en cuenta su impacto sobre la estabilidad del entorno de pruebas.
+SecureKubeOps es la aplicación de referencia de este repositorio. Su finalidad no es actuar como producto principal, sino servir como base controlada para validar el pipeline DevSecOps. Por ese motivo, las actualizaciones propuestas por Dependabot se revisan teniendo en cuenta su impacto sobre la estabilidad del entorno de pruebas.
 
 ## PR #1: actions/checkout de v4 a v6
 

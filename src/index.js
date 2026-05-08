@@ -11,9 +11,9 @@ app.get('/health', (req, res) => {
 
 app.get('/version', (req, res) => {
   res.json({
-    name: 'secure-cicd-kubernetes-lab',
+    name: 'SecureKubeOps',
     version: '0.1.0',
-    purpose: 'DevSecOps pipeline laboratory'
+    purpose: 'Reference application for the DevSecOps pipeline of the TFG'
   });
 });
 
@@ -28,5 +28,5 @@ app.get('/items', (req, res) => {
 });
 
 app.listen(port, () => {
-  console.log(`secure-cicd-kubernetes-lab listening on port ${port}`);
+  console.log(`SecureKubeOps listening on port ${port}`);
 });

@@ -4,6 +4,8 @@ Trabajo Fin de Grado de Zinedine Álvarez Sais.
 
 Este repositorio contiene el desarrollo técnico del Trabajo Fin de Grado "Implementación de un ciclo de vida DevSecOps: Automatización de despliegues seguros y observabilidad en Kubernetes".
 
+El proyecto práctico desarrollado para validar este flujo se denomina **SecureKubeOps**. El nombre técnico utilizado para el paquete, la imagen Docker y las referencias operativas es `secure-kube-ops`.
+
 El proyecto se centra en el diseño y validación de un flujo DevSecOps para automatizar controles de seguridad dentro del ciclo de vida del software. La finalidad principal es construir un proceso CI/CD capaz de integrar análisis estático, detección de secretos, escaneo de imágenes Docker, controles de calidad basados en criticidad, despliegue en Kubernetes y observabilidad del sistema desplegado.
 
 ## Objetivo del proyecto
@@ -57,13 +59,13 @@ http://localhost:3000
 Construir la imagen localmente:
 
 ```bash
-docker build -t secure-cicd-kubernetes:local .
+docker build -t secure-kube-ops:local .
 ```
 
 Ejecutar el contenedor:
 
 ```bash
-docker run --rm -p 3000:3000 secure-cicd-kubernetes:local
+docker run --rm -p 3000:3000 secure-kube-ops:local
 ```
 
 La API queda disponible por defecto en:
