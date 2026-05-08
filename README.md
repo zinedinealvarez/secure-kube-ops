@@ -24,11 +24,11 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow ejecuta el job **DevSecOps check**, que detecta posibles secretos con GitLeaks, valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un escaneo informativo de vulnerabilidades con Trivy.
+También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow ejecuta el job **DevSecOps check**, que analiza el código JavaScript/Node.js con CodeQL, detecta posibles secretos con GitLeaks, valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un escaneo informativo de vulnerabilidades con Trivy.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado todavía no se ha incorporado análisis estático, publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
+En este estado todavía no se ha incorporado publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
 
 ## Ejecución local
 
@@ -90,6 +90,10 @@ El caso negativo ya fue validado activando temporalmente un falso secreto de lab
 
 Este control puede bloquear el pipeline si detecta secretos. El repositorio no debe contener secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
 
+## Análisis estático con CodeQL
+
+El workflow **DevSecOps Pipeline** incorpora CodeQL como análisis estático de seguridad para JavaScript/TypeScript. Se utiliza la acción oficial de GitHub con `build-mode: none`, adecuada para esta aplicación Node.js sin fase de compilación.
+
 ## Endpoints disponibles
 
 Comprobar el estado de la aplicación:
@@ -116,7 +120,6 @@ La evolución técnica del repositorio se realizará de forma progresiva, incorp
 
 Las siguientes fases previstas incluyen:
 
-- Integración de análisis estático de código.
 - Publicación controlada de imágenes en un registry.
 - Despliegue automatizado en Kubernetes.
 - Incorporación de observabilidad mediante herramientas como Prometheus y Grafana.
