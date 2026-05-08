@@ -148,3 +148,5 @@ El repositorio incorpora Dependabot mediante `.github/dependabot.yml`. Su funci�
 - imagen base Docker utilizada por el `Dockerfile`.
 
 Este control permite detectar nuevas versiones disponibles y reducir la exposición a dependencias obsoletas sin introducir secretos ni configuración de registries privados.
+
+Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en `docs/dependabot-decisions.md`.
