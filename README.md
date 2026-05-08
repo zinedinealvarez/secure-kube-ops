@@ -92,6 +92,8 @@ El caso negativo ya fue validado activando temporalmente un falso secreto de lab
 
 Este control puede bloquear el pipeline si detecta secretos. El repositorio no debe contener secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
 
+En las pull requests creadas por Dependabot, el step de GitLeaks no se ejecuta porque el `GITHUB_TOKEN` asociado a este tipo de evento puede no disponer de permisos suficientes para consultar información de la PR. La excepción se limita únicamente a GitLeaks; el resto de controles del pipeline se mantienen.
+
 ## Análisis estático con Semgrep
 
 El workflow **DevSecOps Pipeline** incorpora Semgrep Community Edition como análisis estático de seguridad para el código JavaScript/Node.js de la aplicación de referencia.
