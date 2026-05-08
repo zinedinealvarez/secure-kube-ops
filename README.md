@@ -30,7 +30,7 @@ También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipe
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado todavía no se ha incorporado publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
+En este estado todavía no se ha incorporado despliegue en Kubernetes, observabilidad ni WAF.
 
 Dependabot está configurado para revisar semanalmente las dependencias npm, las acciones de GitHub Actions y la imagen base definida en el `Dockerfile`.
 
@@ -75,6 +75,18 @@ http://localhost:3000
 ```
 
 Docker permite empaquetar la aplicación como una imagen reproducible. Esta imagen será el artefacto que podrá analizarse en fases posteriores del pipeline DevSecOps y servirá como base para el futuro despliegue en Kubernetes.
+
+## Publicación de imagen en GHCR
+
+El workflow **DevSecOps Pipeline** publica automáticamente la imagen Docker en GitHub Container Registry cuando se ejecuta sobre un `push` a la rama `main`. No se publican imágenes desde eventos `pull_request`.
+
+La imagen publicada sigue este formato:
+
+```text
+ghcr.io/zinedinealvarez/secure-kube-ops:<commit-sha>
+```
+
+El uso del SHA del commit como etiqueta permite relacionar cada imagen con el código, los controles ejecutados y la ejecución del pipeline que la generó.
 
 ## Escaneo de imagen con Trivy
 
