@@ -24,7 +24,7 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow ejecuta el job **DevSecOps check**, que analiza el código JavaScript/Node.js con CodeQL, detecta posibles secretos con GitLeaks, valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un escaneo informativo de vulnerabilidades con Trivy.
+También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow ejecuta el job **DevSecOps check**, que detecta posibles secretos con GitLeaks, analiza el código JavaScript/Node.js con Semgrep, valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un escaneo informativo de vulnerabilidades con Trivy.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
@@ -90,9 +90,13 @@ El caso negativo ya fue validado activando temporalmente un falso secreto de lab
 
 Este control puede bloquear el pipeline si detecta secretos. El repositorio no debe contener secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
 
-## Análisis estático con CodeQL
+## Análisis estático con Semgrep
 
-El workflow **DevSecOps Pipeline** incorpora CodeQL como análisis estático de seguridad para JavaScript/TypeScript. Se utiliza la acción oficial de GitHub con `build-mode: none`, adecuada para esta aplicación Node.js sin fase de compilación.
+El workflow **DevSecOps Pipeline** incorpora Semgrep Community Edition como análisis estático de seguridad para el código JavaScript/Node.js de la aplicación de referencia.
+
+CodeQL se evaluó como opción inicial, pero el repositorio se mantiene privado y GitHub requiere Code Security habilitado para usar code scanning en repositorios privados. Por ese motivo, Semgrep se utiliza como alternativa SAST ejecutable en CI sin publicar el repositorio ni depender de code scanning.
+
+Semgrep se ejecuta dentro del job principal mediante la imagen oficial `semgrep/semgrep` y el comando `semgrep scan --config auto`, manteniendo el análisis estático antes de la construcción de la imagen Docker.
 
 ## Endpoints disponibles
 
