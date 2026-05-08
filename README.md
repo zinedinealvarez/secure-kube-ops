@@ -30,6 +30,8 @@ También se incluye documentación inicial del contexto académico del proyecto,
 
 En este estado todavía no se ha incorporado publicación de imágenes, despliegue en Kubernetes, observabilidad ni WAF.
 
+Dependabot está configurado para revisar semanalmente las dependencias npm, las acciones de GitHub Actions y la imagen base definida en el `Dockerfile`.
+
 ## Ejecución local
 
 Instalar dependencias:
@@ -134,3 +136,13 @@ Las siguientes fases previstas incluyen:
 No se deben incluir secretos reales, credenciales reales, tokens reales, claves privadas reales ni contraseñas reales en este repositorio.
 
 Los valores presentes en `.env.example` son falsos y están marcados como datos de laboratorio académico. Su finalidad es apoyar futuras validaciones del pipeline sin comprometer información sensible real.
+
+## Mantenimiento de dependencias
+
+El repositorio incorpora Dependabot mediante `.github/dependabot.yml`. Su función es revisar semanalmente tres superficies de actualización relevantes para el pipeline DevSecOps:
+
+- dependencias npm de la aplicación;
+- acciones utilizadas por GitHub Actions;
+- imagen base Docker utilizada por el `Dockerfile`.
+
+Este control permite detectar nuevas versiones disponibles y reducir la exposición a dependencias obsoletas sin introducir secretos ni configuración de registries privados.
