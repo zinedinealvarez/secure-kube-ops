@@ -30,7 +30,7 @@ También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipe
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado todavía no se ha incorporado despliegue en Kubernetes, observabilidad ni WAF.
+En este estado se incluye un despliegue Kubernetes básico para Minikube. Todavía no se ha incorporado observabilidad ni WAF.
 
 Dependabot está configurado para revisar semanalmente las dependencias npm, las acciones de GitHub Actions y la imagen base definida en el `Dockerfile`.
 
@@ -87,6 +87,73 @@ ghcr.io/zinedinealvarez/secure-kube-ops:<commit-sha>
 ```
 
 El uso del SHA del commit como etiqueta permite relacionar cada imagen con el código, los controles ejecutados y la ejecución del pipeline que la generó.
+
+## Despliegue local en Minikube
+
+SecureKubeOps incluye manifiestos Kubernetes básicos en `k8s/` para desplegar la API de referencia en un clúster local de Minikube.
+
+La imagen se obtiene desde GHCR usando el tag publicado por el pipeline:
+
+```text
+ghcr.io/zinedinealvarez/secure-kube-ops:<commit-sha>
+```
+
+El valor `<commit-sha>` debe sustituirse por el tag publicado por el pipeline en GitHub Container Registry.
+
+Como la imagen está en un registry privado, Minikube necesita un `imagePullSecret`. No se deben guardar tokens reales en los manifiestos ni en el repositorio.
+
+Comprobar herramientas:
+
+```bash
+kubectl version --client
+minikube version
+minikube status
+```
+
+Arrancar Minikube:
+
+```bash
+minikube start
+```
+
+Crear el `imagePullSecret` para GHCR:
+
+```powershell
+$env:GHCR_USERNAME="zinedinealvarez"
+$env:GHCR_TOKEN="TU_TOKEN_DE_GITHUB_CON_READ_PACKAGES"
+
+kubectl create secret docker-registry ghcr-pull-secret `
+  --docker-server=ghcr.io `
+  --docker-username=$env:GHCR_USERNAME `
+  --docker-password=$env:GHCR_TOKEN
+```
+
+Aplicar los manifiestos:
+
+```bash
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+```
+
+Comprobar recursos:
+
+```bash
+kubectl get pods
+kubectl get services
+kubectl describe pod -l app=secure-kube-ops
+```
+
+Probar el endpoint `/health` mediante `port-forward`:
+
+```bash
+kubectl port-forward service/secure-kube-ops 3000:3000
+```
+
+En otra terminal:
+
+```bash
+curl http://localhost:3000/health
+```
 
 ## Escaneo de imagen con Trivy
 

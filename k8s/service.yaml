@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: secure-kube-ops
+  labels:
+    app: secure-kube-ops
+spec:
+  type: ClusterIP
+  selector:
+    app: secure-kube-ops
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
