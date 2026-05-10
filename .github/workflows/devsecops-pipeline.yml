@@ -29,6 +29,14 @@ jobs:
       - name: Run Semgrep SAST
         run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto .
 
+      - name: Informational Trivy Kubernetes config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: k8s/
+          format: table
+          exit-code: 0
+
       - name: Build Docker image
         run: docker build -t ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }} .
 

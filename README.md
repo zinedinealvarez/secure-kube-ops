@@ -163,6 +163,12 @@ Durante la integración del pipeline, Trivy se mantiene en modo informativo y mu
 
 El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda preparado en el workflow para reactivarse en la fase final. Cuando se active, bloqueará la ejecución si detecta vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
 
+## Escaneo de manifiestos Kubernetes con Trivy
+
+El workflow **DevSecOps Pipeline** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC antes de construir la imagen Docker.
+
+En esta fase el escaneo no bloquea el pipeline, ya que se utiliza para obtener visibilidad inicial sobre la configuración de Kubernetes y preparar futuros controles de seguridad.
+
 ## Detección de secretos con GitLeaks
 
 El workflow **DevSecOps Pipeline** incorpora GitLeaks como control de detección de secretos. Este paso analiza el repositorio para identificar posibles credenciales, tokens o claves expuestas en el código o en el historial.
