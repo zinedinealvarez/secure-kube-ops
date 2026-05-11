@@ -30,7 +30,7 @@ También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipe
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado se incluye un despliegue Kubernetes básico para Minikube. Todavía no se ha incorporado observabilidad ni WAF.
+En este estado se incluye un despliegue Kubernetes básico para Minikube y una configuración inicial de observabilidad con `kube-prometheus-stack`. Todavía no se ha incorporado WAF.
 
 Dependabot está configurado para revisar semanalmente las dependencias npm, las acciones de GitHub Actions y la imagen base definida en el `Dockerfile`.
 
@@ -153,6 +153,19 @@ En otra terminal:
 
 ```bash
 curl http://localhost:3000/health
+```
+
+## Observabilidad en Kubernetes
+
+La configuración inicial de observabilidad se encuentra en `monitoring/values.yaml` y está documentada en `docs/observability.md`.
+
+La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El namespace se entrega como manifiesto en `monitoring/namespace.yaml` y la contraseña de Grafana se configura mediante un Secret de Kubernetes que no debe guardarse en el repositorio:
+
+```bash
+helm install monitoring prometheus-community/kube-prometheus-stack \
+  --namespace monitoring \
+  --version 84.5.0 \
+  -f monitoring/values.yaml
 ```
 
 ## Escaneo de imagen con Trivy
