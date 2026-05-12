@@ -250,3 +250,37 @@ El repositorio incorpora Dependabot mediante `.github/dependabot.yml`. Su funci�
 Este control permite detectar nuevas versiones disponibles y reducir la exposición a dependencias obsoletas sin introducir secretos ni configuración de registries privados.
 
 Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en `docs/dependabot-decisions.md`.
+
+## Flujo de ramas
+
+El repositorio utiliza un flujo de ramas simple con dos ramas:
+
+- `pre`: rama de trabajo y validación. En esta rama se trabaja directamente y se permite hacer push.
+- `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
+
+El flujo funciona así:
+
+1. Los cambios se hacen directamente en `pre`.
+2. Se hace push a `pre`.
+3. Se abre una Pull Request desde `pre` hacia `main`.
+4. `main` solo se actualiza mediante Pull Request.
+5. El merge a `main` se realiza cuando pasan los checks obligatorios.
+
+Checks obligatorios configurados:
+
+```text
+DevSecOps checks
+Validate source branch
+```
+
+El bloqueo de push directo a `main` se validó correctamente. GitHub devolvió este error al intentar actualizar la rama protegida directamente:
+
+```text
+GH006: Protected branch update failed for refs/heads/main.
+Changes must be made through a pull request.
+2 of 2 required status checks are expected.
+```
+
+La documentación completa del flujo de ramas se encuentra en `docs/branch-flow.md`.
+
+Para que la protección de ramas se aplicase en el entorno del TFG, el repositorio funcionó en modo público o con un plan de GitHub compatible con Branch protection en repositorios privados.
