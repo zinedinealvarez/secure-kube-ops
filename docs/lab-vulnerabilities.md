@@ -6,11 +6,11 @@ La finalidad de estos valores es apoyar futuras fases del pipeline DevSecOps, es
 
 ## Principios
 
-- No se deben usar secretos reales.
-- No se deben commitear credenciales reales, tokens reales, claves privadas reales ni contraseñas reales.
-- Los valores de prueba deben ser claramente falsos.
-- Cualquier valor con apariencia sensible debe estar documentado.
-- La API de referencia no debe depender de servicios externos reales para su ejecución local.
+- El repositorio no utiliza secretos reales.
+- Las credenciales reales, tokens reales, claves privadas reales y contraseñas reales quedan fuera del repositorio.
+- Los valores de prueba son claramente falsos.
+- Cualquier valor con apariencia sensible queda documentado.
+- La API de referencia funciona localmente sin depender de servicios externos reales.
 
 ## Valores actuales
 

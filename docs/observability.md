@@ -58,7 +58,7 @@ kubectl create secret generic monitoring-grafana-admin `
   --from-literal=admin-password=$env:GRAFANA_ADMIN_PASSWORD
 ```
 
-No se deben guardar contraseñas reales en `README.md`, `docs/` ni `monitoring/values.yaml`. El Secret se crea localmente en el clúster antes de instalar Helm. El archivo `monitoring/values.yaml` solo referencia el Secret y no contiene credenciales.
+Las contraseñas reales quedan fuera de `README.md`, `docs/` y `monitoring/values.yaml`. El Secret se crea localmente en el clúster antes de instalar Helm. El archivo `monitoring/values.yaml` solo referencia el Secret y no contiene credenciales.
 
 Instalar `kube-prometheus-stack` fijando la versión del chart:
 
