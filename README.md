@@ -250,3 +250,23 @@ El repositorio incorpora Dependabot mediante `.github/dependabot.yml`. Su funci�
 Este control permite detectar nuevas versiones disponibles y reducir la exposición a dependencias obsoletas sin introducir secretos ni configuración de registries privados.
 
 Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en `docs/dependabot-decisions.md`.
+
+## Flujo de ramas
+
+El repositorio utiliza un flujo de ramas simple con dos ramas principales:
+
+- `pre`: rama de trabajo y validación.
+- `main`: rama de producción.
+
+El flujo de trabajo es:
+
+1. Realizar los cambios directamente en `pre`.
+2. Hacer push a `pre`.
+3. Abrir una Pull Request desde `pre` hacia `main`.
+4. Fusionar en `main` solo si pasan correctamente los checks de GitHub Actions.
+
+No se utilizan ramas `develop`, `feature/*` ni una tercera rama principal.
+
+La política se apoya en el workflow `.github/workflows/branch-policy.yml`, que falla si una Pull Request hacia `main` no viene desde `pre`.
+
+Además, `main` debe protegerse en GitHub mediante branch protection o rulesets para impedir push directo y requerir checks obligatorios antes del merge.
