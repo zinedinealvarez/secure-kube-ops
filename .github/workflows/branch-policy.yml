@@ -1,0 +1,22 @@
+name: Branch Policy
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  validate-source-branch:
+    name: Validate source branch
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Ensure PR to main comes from pre
+        run: |
+          echo "Base branch: ${{ github.base_ref }}"
+          echo "Source branch: ${{ github.head_ref }}"
+
+          if [ "${{ github.head_ref }}" != "pre" ]; then
+            echo "Pull Requests to main must come from pre."
+            exit 1
+          fi
