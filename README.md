@@ -253,49 +253,34 @@ Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en
 
 ## Flujo de ramas
 
-El repositorio utiliza un flujo de ramas simple con dos ramas principales:
+El repositorio utiliza un flujo de ramas simple con dos ramas:
 
-- `pre`: rama de trabajo y validación.
-- `main`: rama de producción.
+- `pre`: rama de trabajo y validación. En esta rama se trabaja directamente y se permite hacer push.
+- `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
 
-El flujo de trabajo es:
+El flujo funciona así:
 
-1. Realizar los cambios directamente en `pre`.
-2. Hacer push a `pre`.
-3. Abrir una Pull Request desde `pre` hacia `main`.
-4. Fusionar en `main` solo si pasan correctamente los checks de GitHub Actions.
+1. Los cambios se hacen directamente en `pre`.
+2. Se hace push a `pre`.
+3. Se abre una Pull Request desde `pre` hacia `main`.
+4. `main` solo se actualiza mediante Pull Request.
+5. El merge a `main` se realiza cuando pasan los checks obligatorios.
 
-No se utilizan ramas `develop`, `feature/*` ni una tercera rama principal.
-
-La política se apoya en el workflow `.github/workflows/branch-policy.yml`, que falla si una Pull Request hacia `main` no viene desde `pre`.
-
-Además, `main` se protege en GitHub mediante branch protection o rulesets para impedir push directo y requerir checks obligatorios antes del merge.
-
-### Configuración de protección de `main`
-
-La rama `main` se protege en GitHub con una regla aplicada exclusivamente a:
+Checks obligatorios configurados:
 
 ```text
-main
+DevSecOps checks
+Validate source branch
 ```
 
-Configuración aplicada:
-
-- `Require a pull request before merging`: activado.
-- `Required approvals`: `0`.
-- `Require status checks to pass`: activado.
-- `Require branches to be up to date before merging`: activado.
-- `Do not require status checks on creation`: desactivado.
-- `Allowed merge methods`: solo `Squash`.
-- `Block force pushes`: activado.
-- `Allow deletions`: desactivado.
-- `Do not allow bypassing the above settings`: activado, si la opción está disponible.
-
-Checks requeridos:
+El bloqueo de push directo a `main` se validó correctamente. GitHub devolvió este error al intentar actualizar la rama protegida directamente:
 
 ```text
-Branch Policy / Validate source branch
-DevSecOps Pipeline / DevSecOps checks
+GH006: Protected branch update failed for refs/heads/main.
+Changes must be made through a pull request.
+2 of 2 required status checks are expected.
 ```
 
-Con esta configuración, `main` solo recibe cambios mediante una Pull Request desde `pre`, y el merge se realiza cuando los checks obligatorios están en verde.
+La documentación completa del flujo de ramas se encuentra en `docs/branch-flow.md`.
+
+Para que la protección de ramas se aplicase en el entorno del TFG, el repositorio funcionó en modo público o con un plan de GitHub compatible con Branch protection en repositorios privados.
