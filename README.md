@@ -98,9 +98,9 @@ La imagen se obtiene desde GHCR usando el tag publicado por el pipeline:
 ghcr.io/zinedinealvarez/secure-kube-ops:<commit-sha>
 ```
 
-El valor `<commit-sha>` debe sustituirse por el tag publicado por el pipeline en GitHub Container Registry.
+El valor `<commit-sha>` se sustituye por el tag publicado por el pipeline en GitHub Container Registry.
 
-Como la imagen está en un registry privado, Minikube necesita un `imagePullSecret`. No se deben guardar tokens reales en los manifiestos ni en el repositorio.
+Como la imagen está en un registry privado, Minikube utiliza un `imagePullSecret`. Los tokens reales quedan fuera de los manifiestos y del repositorio.
 
 Comprobar herramientas:
 
@@ -159,7 +159,7 @@ curl http://localhost:3000/health
 
 La configuración inicial de observabilidad se encuentra en `monitoring/values.yaml` y está documentada en `docs/observability.md`.
 
-La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El namespace se entrega como manifiesto en `monitoring/namespace.yaml` y la contraseña de Grafana se configura mediante un Secret de Kubernetes que no debe guardarse en el repositorio:
+La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El namespace se entrega como manifiesto en `monitoring/namespace.yaml` y la contraseña de Grafana se configura mediante un Secret de Kubernetes que queda fuera del repositorio:
 
 ```bash
 helm install monitoring prometheus-community/kube-prometheus-stack \
@@ -190,7 +190,7 @@ GitLeaks mantiene sus reglas por defecto mediante la configuración incluida en 
 
 El caso negativo ya fue validado activando temporalmente un falso secreto de laboratorio en `.env.example`. Tras comprobar que GitLeaks lo detecta y que el pipeline falla correctamente, el valor se elimina del repositorio para devolver el pipeline a verde.
 
-Este control puede bloquear el pipeline si detecta secretos. El repositorio no debe contener secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
+Este control puede bloquear el pipeline si detecta secretos. El repositorio no contiene secretos reales; los valores de ejemplo incluidos en `.env.example` son falsos y están documentados como datos de laboratorio académico.
 
 En las pull requests creadas por Dependabot, el step de GitLeaks no se ejecuta porque el `GITHUB_TOKEN` asociado a este tipo de evento puede no disponer de permisos suficientes para consultar información de la PR. La excepción se limita únicamente a GitLeaks; el resto de controles del pipeline se mantienen.
 
@@ -235,7 +235,7 @@ Las siguientes fases previstas incluyen:
 
 ## Seguridad y datos de prueba
 
-No se deben incluir secretos reales, credenciales reales, tokens reales, claves privadas reales ni contraseñas reales en este repositorio.
+El repositorio no incluye secretos reales, credenciales reales, tokens reales, claves privadas reales ni contraseñas reales.
 
 Los valores presentes en `.env.example` son falsos y están marcados como datos de laboratorio académico. Su finalidad es apoyar futuras validaciones del pipeline sin comprometer información sensible real.
 
@@ -250,3 +250,52 @@ El repositorio incorpora Dependabot mediante `.github/dependabot.yml`. Su funci�
 Este control permite detectar nuevas versiones disponibles y reducir la exposición a dependencias obsoletas sin introducir secretos ni configuración de registries privados.
 
 Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en `docs/dependabot-decisions.md`.
+
+## Flujo de ramas
+
+El repositorio utiliza un flujo de ramas simple con dos ramas principales:
+
+- `pre`: rama de trabajo y validación.
+- `main`: rama de producción.
+
+El flujo de trabajo es:
+
+1. Realizar los cambios directamente en `pre`.
+2. Hacer push a `pre`.
+3. Abrir una Pull Request desde `pre` hacia `main`.
+4. Fusionar en `main` solo si pasan correctamente los checks de GitHub Actions.
+
+No se utilizan ramas `develop`, `feature/*` ni una tercera rama principal.
+
+La política se apoya en el workflow `.github/workflows/branch-policy.yml`, que falla si una Pull Request hacia `main` no viene desde `pre`.
+
+Además, `main` se protege en GitHub mediante branch protection o rulesets para impedir push directo y requerir checks obligatorios antes del merge.
+
+### Configuración de protección de `main`
+
+La rama `main` se protege en GitHub con una regla aplicada exclusivamente a:
+
+```text
+main
+```
+
+Configuración aplicada:
+
+- `Require a pull request before merging`: activado.
+- `Required approvals`: `0`.
+- `Require status checks to pass`: activado.
+- `Require branches to be up to date before merging`: activado.
+- `Do not require status checks on creation`: desactivado.
+- `Allowed merge methods`: solo `Squash`.
+- `Block force pushes`: activado.
+- `Allow deletions`: desactivado.
+- `Do not allow bypassing the above settings`: activado, si la opción está disponible.
+
+Checks requeridos:
+
+```text
+Branch Policy / Validate source branch
+DevSecOps Pipeline / DevSecOps checks
+```
+
+Con esta configuración, `main` solo recibe cambios mediante una Pull Request desde `pre`, y el merge se realiza cuando los checks obligatorios están en verde.
