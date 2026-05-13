@@ -15,8 +15,6 @@ El flujo operativo funciona así:
 4. `main` solo se actualiza mediante Pull Request.
 5. El merge a `main` se realiza cuando pasan los checks obligatorios de GitHub Actions.
 
-No se utilizan ramas `develop`, `feature/*` ni una tercera rama principal.
-
 ## Protección de `main`
 
 La rama `main` está protegida mediante una Branch protection rule.
@@ -24,19 +22,20 @@ La rama `main` está protegida mediante una Branch protection rule.
 La regla está configurada con:
 
 - Pull Request obligatoria antes del merge.
-- `Required approvals`: `0`.
+- Aprobaciones requeridas: desactivado.
 - Status checks obligatorios antes del merge.
-- Rama actualizada antes del merge.
-- Método de merge: `Squash`.
-- Bloqueo de force push.
-- Borrado de rama desactivado.
+- Rama actualizada antes del merge: desactivado.
+- Allow force pushes: desactivado.
+- Allow deletions: desactivado.
 
 Checks obligatorios configurados:
 
 ```text
-DevSecOps checks
+Image Validation
 Validate source branch
 ```
+
+La opción equivalente a `Require branches to be up to date before merging` queda desactivada. Durante la validación del flujo generaba bloqueos del tipo `This branch is out-of-date with the base branch`, especialmente después de merges que actualizaban la rama base y dejaban la Pull Request pendiente de sincronización. El control de entrada a `main` se mantiene mediante Pull Request obligatoria y checks requeridos en verde.
 
 ## Validación del bloqueo de push directo
 

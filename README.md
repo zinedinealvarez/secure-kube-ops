@@ -269,9 +269,11 @@ El flujo funciona así:
 Checks obligatorios configurados:
 
 ```text
-DevSecOps checks
+Image Validation
 Validate source branch
 ```
+
+La opción equivalente a `Require branches to be up to date before merging` queda desactivada. Durante la validación del flujo generaba bloqueos del tipo `This branch is out-of-date with the base branch`, especialmente después de merges que actualizaban la rama base y dejaban la Pull Request pendiente de sincronización. El control de entrada a `main` se mantiene mediante Pull Request obligatoria y checks requeridos en verde.
 
 El bloqueo de push directo a `main` se validó correctamente. GitHub devolvió este error al intentar actualizar la rama protegida directamente:
 
