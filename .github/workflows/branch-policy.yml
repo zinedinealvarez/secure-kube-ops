@@ -56,13 +56,13 @@ jobs:
             echo "Base branch: \`${{ github.base_ref }}\`"
             echo "Source branch: \`${{ github.head_ref }}\`"
             echo ""
-            echo "Artifact structure: \`metadata.json\`, \`report.html\`, \`tools/\`"
+            echo "Artifact structure: \`metadata.json\`, \`branch-policy-report.html\`, \`tools/\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate Branch Policy HTML report
         if: always()
         run: |
-          cat > reports/report.html <<EOF
+          cat > reports/branch-policy-report.html <<EOF
           <!doctype html>
           <html lang="es">
           <head>
@@ -82,6 +82,10 @@ jobs:
             <h1>SecureKubeOps - Branch Policy</h1>
             <p class="meta">Resultados de la validación de política de ramas para la Pull Request <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code>.</p>
             <p>El proceso comprueba que toda Pull Request dirigida a <code>main</code> procede de la rama autorizada <code>pre</code>.</p>
+            <p>Se ha ejecutado el siguiente control:</p>
+            <ul>
+              <li><strong>Validate source branch:</strong> verificación de que la rama origen de la Pull Request es <code>pre</code>.</li>
+            </ul>
             <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
             <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
             <p><strong>Pull Request:</strong> <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code></p>
@@ -102,7 +106,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: securekubeops-branch-policy-${{ github.run_id }}-${{ github.sha }}
+          name: securekubeops-branch-policy-results-${{ github.run_id }}-${{ github.sha }}
           path: reports/
           retention-days: 90
           if-no-files-found: warn

@@ -17,10 +17,10 @@ La primera fase incorporó evidencias básicas en cada workflow. Cada ejecución
 Los artifacts generados siguen un nombre asociado al workflow, al `run_id` y al SHA del commit:
 
 ```text
-securekubeops-pre-analysis-<run_id>-<commit-sha>
-securekubeops-image-validation-<run_id>-<commit-sha>
-securekubeops-branch-policy-<run_id>-<commit-sha>
-securekubeops-publish-image-<run_id>-<commit-sha>
+securekubeops-pre-analysis-security-results-<run_id>-<commit-sha>
+securekubeops-image-validation-security-results-<run_id>-<commit-sha>
+securekubeops-branch-policy-results-<run_id>-<commit-sha>
+securekubeops-ghcr-publish-results-<run_id>-<commit-sha>
 ```
 
 Esta fase permitió validar que GitHub Actions conserva evidencias descargables por ejecución sin versionarlas dentro del repositorio.
@@ -32,7 +32,7 @@ La segunda fase normaliza el contenido interno de los artifacts. Todos los workf
 ```text
 reports/
   metadata.json
-  report.html
+  <workflow-report>.html
   tools/
 ```
 
@@ -46,7 +46,7 @@ reports/
 - tipo de artifact;
 - resultado de los controles ejecutados.
 
-El resumen en Markdown se muestra directamente en GitHub Actions mediante `GITHUB_STEP_SUMMARY`. El artifact conserva `metadata.json`, `report.html` y los informes específicos de herramientas dentro de `tools/`, por ejemplo:
+El resumen en Markdown se muestra directamente en GitHub Actions mediante `GITHUB_STEP_SUMMARY`. El artifact conserva `metadata.json`, un informe HTML específico del workflow y los informes específicos de herramientas dentro de `tools/`, por ejemplo:
 
 ```text
 reports/tools/gitleaks-summary.json
@@ -56,6 +56,8 @@ reports/tools/trivy-image.json
 ```
 
 Esta estructura facilita comparar ejecuciones, localizar evidencias concretas y justificar los controles aplicados en el TFG.
+
+El artifact SARIF automático de GitLeaks queda desactivado mediante `GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false`. La evidencia de GitLeaks se conserva dentro del artifact normalizado de SecureKubeOps.
 
 ## Fase 3: SBOM de imagen
 
@@ -69,13 +71,16 @@ El SBOM permite identificar los componentes incluidos en la imagen construida pa
 
 ## Fase 4: informe HTML descargable
 
-La cuarta fase incorpora un informe HTML estático dentro de cada artifact:
+La cuarta fase incorpora un informe HTML estático dentro de cada artifact. Cada workflow genera un nombre de informe adaptado a su función:
 
 ```text
-reports/report.html
+reports/pre-analysis-security-report.html
+reports/image-validation-security-report.html
+reports/branch-policy-report.html
+reports/publish-image-report.html
 ```
 
-Este informe presenta de forma visual los metadatos principales de la ejecución, los controles ejecutados, el resultado de cada control y los archivos de evidencia generados. El HTML no sustituye a los JSON, SARIF o SBOM originales; funciona como una vista resumida para revisión y documentación académica.
+Este informe presenta de forma visual los metadatos principales de la ejecución, los controles ejecutados, el resultado de cada control y los archivos de evidencia generados. El HTML no sustituye a los JSON o SBOM originales; funciona como una vista resumida para revisión y documentación académica.
 
 ## Evidencias por workflow
 
@@ -97,7 +102,7 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/report.html
+reports/pre-analysis-security-report.html
 reports/tools/gitleaks-summary.json
 reports/tools/semgrep.json
 reports/tools/trivy-config.json
@@ -121,7 +126,7 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/report.html
+reports/image-validation-security-report.html
 reports/tools/trivy-image.json
 reports/tools/sbom.cyclonedx.json
 ```
@@ -142,7 +147,7 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/report.html
+reports/branch-policy-report.html
 ```
 
 ### Publish Image
@@ -163,7 +168,7 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/report.html
+reports/publish-image-report.html
 ```
 
 La imagen publicada queda disponible en GHCR con etiqueta basada en el SHA del commit:
@@ -183,7 +188,7 @@ Para documentar una ejecución en la memoria del TFG se usa:
 - captura o referencia al summary del workflow;
 - artifact descargado de la ejecución;
 - `metadata.json` para identificar commit, workflow y resultado;
-- `report.html` como informe visual descargable;
+- informe HTML del workflow como evidencia visual descargable;
 - informes de `tools/` para justificar hallazgos de seguridad;
 - SBOM CycloneDX para evidenciar los componentes incluidos en la imagen;
 - enlace al run correspondiente en GitHub Actions.

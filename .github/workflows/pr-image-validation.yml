@@ -95,13 +95,13 @@ jobs:
             echo "Image: \`secure-kube-ops:${{ github.sha }}\`"
             echo "Commit: \`${{ github.sha }}\`"
             echo ""
-            echo "Artifact structure: \`metadata.json\`, \`report.html\`, \`tools/\`"
+            echo "Artifact structure: \`metadata.json\`, \`image-validation-security-report.html\`, \`tools/\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate Image Validation HTML report
         if: always()
         run: |
-          cat > reports/report.html <<EOF
+          cat > reports/image-validation-security-report.html <<EOF
           <!doctype html>
           <html lang="es">
           <head>
@@ -121,6 +121,12 @@ jobs:
             <h1>SecureKubeOps - Image Validation</h1>
             <p class="meta">Resultados de la validación de imagen ejecutada para la Pull Request <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code>.</p>
             <p>El proceso construye la imagen candidata <code>secure-kube-ops:${{ github.sha }}</code>, analiza sus vulnerabilidades y genera el SBOM antes de permitir la entrada del cambio en <code>main</code>.</p>
+            <p>Se han ejecutado los siguientes controles:</p>
+            <ul>
+              <li><strong>Docker build:</strong> construcción de la imagen candidata a partir del Dockerfile del repositorio.</li>
+              <li><strong>Trivy image scan:</strong> escaneo informativo de vulnerabilidades del sistema operativo y librerías incluidas en la imagen.</li>
+              <li><strong>Trivy SBOM:</strong> generación del inventario CycloneDX de componentes incluidos en la imagen.</li>
+            </ul>
             <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
             <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
             <p><strong>Commit:</strong> <code>${{ github.sha }}</code></p>
@@ -145,7 +151,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: securekubeops-image-validation-${{ github.run_id }}-${{ github.sha }}
+          name: securekubeops-image-validation-security-results-${{ github.run_id }}-${{ github.sha }}
           path: reports/
           retention-days: 90
           if-no-files-found: warn
