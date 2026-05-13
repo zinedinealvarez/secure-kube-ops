@@ -20,7 +20,7 @@ jobs:
           fetch-depth: 0
 
       - name: Prepare reports directory
-        run: mkdir -p reports
+        run: mkdir -p reports/tools
 
       - name: Detect secrets with GitLeaks
         id: gitleaks
@@ -32,7 +32,7 @@ jobs:
       - name: Record GitLeaks evidence
         if: always()
         run: |
-          cat > reports/gitleaks-summary.json <<EOF
+          cat > reports/tools/gitleaks-summary.json <<EOF
           {
             "tool": "GitLeaks",
             "workflow": "${{ github.workflow }}",
@@ -46,7 +46,7 @@ jobs:
 
       - name: Run Semgrep SAST
         id: semgrep_sast
-        run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/semgrep.json
+        run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/tools/semgrep.json
 
       - name: Informational Trivy Kubernetes config scan
         id: trivy_config_scan
@@ -64,24 +64,44 @@ jobs:
           scan-type: config
           scan-ref: k8s/
           format: json
-          output: reports/trivy-config.json
+          output: reports/tools/trivy-config.json
           exit-code: 0
 
-      - name: Write Pre Analysis summary
+      - name: Write Pre Analysis metadata and summary
         if: always()
         run: |
+          cat > reports/metadata.json <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "event": "${{ github.event_name }}",
+            "branch": "${{ github.ref_name }}",
+            "commit": "${{ github.sha }}",
+            "artifact_type": "devsecops-evidence",
+            "controls": {
+              "gitleaks": "${{ steps.gitleaks.outcome }}",
+              "semgrep_sast": "${{ steps.semgrep_sast.outcome }}",
+              "trivy_config": "${{ steps.trivy_config_scan.outcome }}"
+            }
+          }
+          EOF
+
           {
             echo "## Pre Analysis evidence"
             echo ""
             echo "| Control | Result | Evidence |"
             echo "| --- | --- | --- |"
-            echo "| GitLeaks | ${{ steps.gitleaks.outcome }} | gitleaks-summary.json |"
-            echo "| Semgrep SAST | ${{ steps.semgrep_sast.outcome }} | semgrep.json |"
-            echo "| Trivy config | ${{ steps.trivy_config_scan.outcome }} | trivy-config.json |"
+            echo "| GitLeaks | ${{ steps.gitleaks.outcome }} | tools/gitleaks-summary.json |"
+            echo "| Semgrep SAST | ${{ steps.semgrep_sast.outcome }} | tools/semgrep.json |"
+            echo "| Trivy config | ${{ steps.trivy_config_scan.outcome }} | tools/trivy-config.json |"
             echo ""
             echo "Commit: \`${{ github.sha }}\`"
             echo "Branch: \`${{ github.ref_name }}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+            echo ""
+            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`tools/\`"
+          } > reports/summary.md
+
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Pre Analysis reports
         if: always()
