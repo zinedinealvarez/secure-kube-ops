@@ -32,7 +32,6 @@ La segunda fase normaliza el contenido interno de los artifacts. Todos los workf
 ```text
 reports/
   metadata.json
-  summary.md
   report.html
   tools/
 ```
@@ -47,7 +46,7 @@ reports/
 - tipo de artifact;
 - resultado de los controles ejecutados.
 
-`summary.md` contiene el resumen en Markdown que también se muestra en GitHub Actions. El directorio `tools/` contiene informes específicos de herramientas cuando aplica, por ejemplo:
+El resumen en Markdown se muestra directamente en GitHub Actions mediante `GITHUB_STEP_SUMMARY`. El artifact conserva `metadata.json`, `report.html` y los informes específicos de herramientas dentro de `tools/`, por ejemplo:
 
 ```text
 reports/tools/gitleaks-summary.json
@@ -98,7 +97,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/report.html
 reports/tools/gitleaks-summary.json
 reports/tools/semgrep.json
@@ -123,7 +121,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/report.html
 reports/tools/trivy-image.json
 reports/tools/sbom.cyclonedx.json
@@ -145,7 +142,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/report.html
 ```
 
@@ -167,7 +163,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/report.html
 ```
 

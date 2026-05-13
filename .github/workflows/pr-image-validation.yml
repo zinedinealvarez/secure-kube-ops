@@ -95,10 +95,8 @@ jobs:
             echo "Image: \`secure-kube-ops:${{ github.sha }}\`"
             echo "Commit: \`${{ github.sha }}\`"
             echo ""
-            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`report.html\`, \`tools/\`"
-          } > reports/summary.md
-
-          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+            echo "Artifact structure: \`metadata.json\`, \`report.html\`, \`tools/\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Generate Image Validation HTML report
         if: always()
@@ -121,12 +119,14 @@ jobs:
           </head>
           <body>
             <h1>SecureKubeOps - Image Validation</h1>
-            <p class="meta">Evidencia generada por GitHub Actions para el TFG.</p>
+            <p class="meta">Resultados de la validación de imagen ejecutada para la Pull Request <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code>.</p>
+            <p>El proceso construye la imagen candidata <code>secure-kube-ops:${{ github.sha }}</code>, analiza sus vulnerabilidades y genera el SBOM antes de permitir la entrada del cambio en <code>main</code>.</p>
             <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
             <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
             <p><strong>Commit:</strong> <code>${{ github.sha }}</code></p>
             <p><strong>Imagen:</strong> <code>secure-kube-ops:${{ github.sha }}</code></p>
             <p><strong>Pull Request:</strong> <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code></p>
+            <p>Se han obtenido los siguientes resultados:</p>
             <table>
               <thead>
                 <tr><th>Control</th><th>Resultado</th><th>Evidencia</th></tr>
