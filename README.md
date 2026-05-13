@@ -217,7 +217,9 @@ Cada ejecución incorpora un resumen en GitHub Actions mediante `GITHUB_STEP_SUM
 
 Los artefactos se publican con nombres asociados al workflow, al `run_id` y al SHA del commit. La retención configurada es de 90 días, suficiente para conservar evidencias por ejecución durante el desarrollo y validación del TFG.
 
-La evolución de esta estrategia y la estructura normalizada de los artifacts se documenta en `docs/pipeline-evidence.md`.
+Cada artifact incluye `metadata.json`, un informe HTML específico del workflow y los informes técnicos dentro de `tools/`. El resumen Markdown se muestra en GitHub Actions, mientras que el HTML funciona como informe estático descargable de la ejecución. La evolución de esta estrategia y la estructura normalizada de los artifacts se documenta en `docs/pipeline-evidence.md`.
+
+El artifact SARIF automático de GitLeaks queda desactivado para evitar duplicar evidencias fuera del paquete normalizado de SecureKubeOps.
 
 ## Endpoints disponibles
 

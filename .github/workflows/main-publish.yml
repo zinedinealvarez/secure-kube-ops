@@ -72,16 +72,62 @@ jobs:
             echo "Image: \`ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }}\`"
             echo "Commit: \`${{ github.sha }}\`"
             echo ""
-            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`tools/\`"
-          } > reports/summary.md
+            echo "Artifact structure: \`metadata.json\`, \`publish-image-report.html\`, \`tools/\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
-          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Generate Publish Image HTML report
+        if: always()
+        run: |
+          cat > reports/publish-image-report.html <<EOF
+          <!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <title>SecureKubeOps - Publish Image evidence</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 2rem; color: #1f2937; }
+              h1 { margin-bottom: 0.25rem; }
+              .meta { color: #4b5563; margin-bottom: 1.5rem; }
+              table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+              th, td { border: 1px solid #d1d5db; padding: 0.65rem; text-align: left; }
+              th { background: #f3f4f6; }
+              code { background: #f3f4f6; padding: 0.15rem 0.3rem; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>SecureKubeOps - Publish Image</h1>
+            <p class="meta">Resultados del proceso de publicación ejecutado desde <code>main</code> para el commit <code>${{ github.sha }}</code>.</p>
+            <p>El proceso construye la imagen final y la publica en GitHub Container Registry con una etiqueta basada en el SHA del commit.</p>
+            <p>Se han ejecutado los siguientes controles:</p>
+            <ul>
+              <li><strong>Docker build:</strong> construcción de la imagen final desde el código fusionado en <code>main</code>.</li>
+              <li><strong>GHCR login:</strong> autenticación contra GitHub Container Registry mediante <code>GITHUB_TOKEN</code>.</li>
+              <li><strong>GHCR push:</strong> publicación de la imagen versionada con el SHA del commit.</li>
+            </ul>
+            <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
+            <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
+            <p><strong>Commit:</strong> <code>${{ github.sha }}</code></p>
+            <p><strong>Imagen:</strong> <code>ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }}</code></p>
+            <p>Se han obtenido los siguientes resultados:</p>
+            <table>
+              <thead>
+                <tr><th>Control</th><th>Resultado</th><th>Evidencia</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Docker build</td><td>${{ steps.docker_build.outcome }}</td><td>metadata.json</td></tr>
+                <tr><td>GHCR login</td><td>${{ steps.ghcr_login.outcome }}</td><td>metadata.json</td></tr>
+                <tr><td>GHCR push</td><td>${{ steps.ghcr_push.outcome }}</td><td>metadata.json</td></tr>
+              </tbody>
+            </table>
+          </body>
+          </html>
+          EOF
 
       - name: Upload Publish Image reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: securekubeops-publish-image-${{ github.run_id }}-${{ github.sha }}
+          name: securekubeops-ghcr-publish-results-${{ github.run_id }}-${{ github.sha }}
           path: reports/
           retention-days: 90
           if-no-files-found: warn
