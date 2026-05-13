@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Prepare reports directory
-        run: mkdir -p reports
+        run: mkdir -p reports/tools
 
       - name: Build Docker image
         id: docker_build
@@ -40,15 +40,20 @@ jobs:
       - name: Record published image evidence
         if: always()
         run: |
-          cat > reports/published-image-metadata.json <<EOF
+          cat > reports/metadata.json <<EOF
           {
             "workflow": "${{ github.workflow }}",
             "run_id": "${{ github.run_id }}",
+            "event": "${{ github.event_name }}",
+            "branch": "${{ github.ref_name }}",
             "commit": "${{ github.sha }}",
             "image": "ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }}",
-            "build_outcome": "${{ steps.docker_build.outcome }}",
-            "login_outcome": "${{ steps.ghcr_login.outcome }}",
-            "push_outcome": "${{ steps.ghcr_push.outcome }}"
+            "artifact_type": "devsecops-evidence",
+            "controls": {
+              "docker_build": "${{ steps.docker_build.outcome }}",
+              "ghcr_login": "${{ steps.ghcr_login.outcome }}",
+              "ghcr_push": "${{ steps.ghcr_push.outcome }}"
+            }
           }
           EOF
 
@@ -60,13 +65,17 @@ jobs:
             echo ""
             echo "| Control | Result | Evidence |"
             echo "| --- | --- | --- |"
-            echo "| Docker build | ${{ steps.docker_build.outcome }} | published-image-metadata.json |"
-            echo "| GHCR login | ${{ steps.ghcr_login.outcome }} | published-image-metadata.json |"
-            echo "| GHCR push | ${{ steps.ghcr_push.outcome }} | published-image-metadata.json |"
+            echo "| Docker build | ${{ steps.docker_build.outcome }} | metadata.json |"
+            echo "| GHCR login | ${{ steps.ghcr_login.outcome }} | metadata.json |"
+            echo "| GHCR push | ${{ steps.ghcr_push.outcome }} | metadata.json |"
             echo ""
             echo "Image: \`ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }}\`"
             echo "Commit: \`${{ github.sha }}\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+            echo ""
+            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`tools/\`"
+          } > reports/summary.md
+
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload Publish Image reports
         if: always()
