@@ -106,7 +106,7 @@ La quinta fase incorpora un archivo de métricas en formato Prometheus text form
 reports/metrics.prom
 ```
 
-Estas métricas no se envían todavía a Pushgateway, Prometheus ni Grafana. Por ahora se conservan como evidencia y como preparación para una futura integración de observabilidad del pipeline.
+Estas métricas se conservan como artifact de la ejecución y mantienen un formato compatible con Prometheus text format. Su estructura permite construir paneles agregados en Grafana a partir de los resultados de los pipelines.
 
 Las métricas están orientadas a paneles agregados, no a duplicar el contenido detallado de los artifacts. Por ese motivo no usan como labels valores de alta cardinalidad o información sensible como commit, `run_id`, CVE, paquetes, ficheros, reglas, secretos o mensajes de error.
 
@@ -127,7 +127,7 @@ Las métricas están orientadas a paneles agregados, no a duplicar el contenido 
 | Campo | Valor |
 | --- | --- |
 | Finalidad | Contabiliza ejecuciones de workflows para paneles de salud general. |
-| Paneles previstos | Total de ejecuciones, ejecuciones por workflow, porcentaje de éxito/fallo global y porcentaje de éxito/fallo por workflow. |
+| Paneles | Total de ejecuciones, ejecuciones por workflow, porcentaje de éxito/fallo global y porcentaje de éxito/fallo por workflow. |
 | Labels | `workflow`, `event`, `branch_type`, `result` |
 | Posibles `workflow` | `pre_analysis`, `image_validation`, `branch_policy`, `publish_image` |
 | Posibles `event` | `push`, `pull_request` |
@@ -151,7 +151,7 @@ Generación por workflow:
 | Campo | Valor |
 | --- | --- |
 | Finalidad | Contabiliza el resultado de cada control ejecutado. |
-| Paneles previstos | Controles que más fallan, fallos por categoría y evolución de estabilidad por step. |
+| Paneles | Controles que más fallan, fallos por categoría y evolución de estabilidad por step. |
 | Labels | `workflow`, `control`, `category`, `result` |
 | Posibles `result` | `success`, `failure`, `skipped`, `cancelled` |
 | Valor | `1` por control ejecutado. |
@@ -173,12 +173,14 @@ Controles registrados:
 | `Publish Image` | `ghcr_login` | `registry_publish` | `steps.ghcr_login.outcome` |
 | `Publish Image` | `ghcr_push` | `registry_publish` | `steps.ghcr_push.outcome` |
 
+En **Publish Image**, `ghcr_login` queda con `result="skipped"` cuando no existe una imagen construida correctamente. `ghcr_push` queda con `result="skipped"` cuando no existe una imagen construida correctamente o cuando el login en GHCR no ha finalizado con éxito.
+
 #### `securekubeops_security_findings`
 
 | Campo | Valor |
 | --- | --- |
 | Finalidad | Registra hallazgos agregados de seguridad por herramienta, tipo y severidad. |
-| Paneles previstos | Vulnerabilidades por severidad, findings SAST por severidad, configuración Kubernetes por severidad y evolución de `HIGH`/`CRITICAL`. |
+| Paneles | Vulnerabilidades por severidad, findings SAST por severidad, configuración Kubernetes por severidad y evolución de `HIGH`/`CRITICAL`. |
 | Labels | `workflow`, `tool`, `scan_type`, `severity` |
 | Valor | Número de hallazgos agregados para esa combinación de labels. |
 | Origen | Informes JSON generados en `reports/tools/`. |
@@ -197,7 +199,7 @@ Generación por workflow:
 | Campo | Valor |
 | --- | --- |
 | Finalidad | Contabiliza eventos de promoción del flujo DevSecOps. |
-| Paneles previstos | PRs permitidas o bloqueadas, publicaciones de imagen en GHCR y evolución de promoción hacia producción. |
+| Paneles | PRs permitidas o bloqueadas, publicaciones de imagen en GHCR y evolución de promoción hacia producción. |
 | Labels | `stage`, `result` |
 | Valor | `1` por evento de promoción. |
 | Cardinalidad/privacidad | Riesgo bajo. `stage` y `result` son listas cerradas. |
@@ -207,14 +209,14 @@ Eventos registrados:
 | Workflow | Stage | Posibles result | Origen |
 | --- | --- | --- | --- |
 | `Branch Policy` | `branch_policy` | `allowed`, `blocked` | `steps.branch_policy.outcome` |
-| `Publish Image` | `ghcr_publish` | `success`, `failure` | `steps.ghcr_push.outcome` |
+| `Publish Image` | `ghcr_publish` | `success`, `failure`, `skipped` | `steps.ghcr_push.outcome` |
 
 #### `securekubeops_supply_chain_artifact`
 
 | Campo | Valor |
 | --- | --- |
 | Finalidad | Indica si se ha generado una evidencia de cadena de suministro. |
-| Paneles previstos | Porcentaje de imágenes con SBOM y ejecuciones donde el SBOM está disponible. |
+| Paneles | Porcentaje de imágenes con SBOM y ejecuciones donde el SBOM está disponible. |
 | Labels | `workflow`, `artifact_type`, `result` |
 | Posibles `artifact_type` | `sbom_cyclonedx` |
 | Posibles `result` | `generated`, `missing` |
@@ -222,7 +224,7 @@ Eventos registrados:
 | Origen | Existencia de `reports/tools/sbom.cyclonedx.json` en `Image Validation`. |
 | Cardinalidad/privacidad | Riesgo bajo. No exporta nombres de componentes ni paquetes. |
 
-El número de componentes del SBOM queda fuera de esta primera versión y se deja para una fase posterior.
+El número de componentes del SBOM no se exporta como métrica para mantener el conjunto actual centrado en evidencias agregadas y de baja cardinalidad.
 
 ## Evidencias por workflow
 

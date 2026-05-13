@@ -4,7 +4,7 @@ Trabajo Fin de Grado de Zinedine Álvarez Sais.
 
 Este repositorio contiene el desarrollo técnico del Trabajo Fin de Grado "Implementación de un ciclo de vida DevSecOps: Automatización de despliegues seguros y observabilidad en Kubernetes".
 
-La solución práctica desarrollada para validar este flujo se denomina **SecureKubeOps**. Incluye el pipeline DevSecOps, los controles de seguridad, la construcción de imágenes Docker y las futuras fases de despliegue en Kubernetes y observabilidad. El nombre técnico utilizado para el paquete, la imagen Docker y las referencias operativas es `secure-kube-ops`.
+La solución práctica desarrollada para validar este flujo se denomina **SecureKubeOps**. Incluye el pipeline DevSecOps, los controles de seguridad, la construcción de imágenes Docker, el despliegue en Kubernetes y la configuración de observabilidad. El nombre técnico utilizado para el paquete, la imagen Docker y las referencias operativas es `secure-kube-ops`.
 
 El proyecto se centra en el diseño y validación de un flujo DevSecOps para automatizar controles de seguridad dentro del ciclo de vida del software. La finalidad principal es construir un proceso CI/CD capaz de integrar análisis estático, detección de secretos, escaneo de imágenes Docker, controles de calidad basados en criticidad, despliegue en Kubernetes y observabilidad del sistema desplegado.
 
@@ -12,7 +12,7 @@ El proyecto se centra en el diseño y validación de un flujo DevSecOps para aut
 
 El objetivo principal del TFG es demostrar cómo un flujo CI/CD seguro puede reducir riesgos operativos y mejorar la fiabilidad de despliegues en entornos cloud nativos.
 
-Para ello, el proyecto plantea una arquitectura basada en GitHub Actions como sistema de automatización, herramientas de análisis de seguridad para evaluar código e imágenes, Security Gates para condicionar el avance del pipeline y Kubernetes como entorno final de despliegue. La observabilidad se incorporará como parte del seguimiento del estado de la aplicación y de la infraestructura.
+Para ello, el proyecto plantea una arquitectura basada en GitHub Actions como sistema de automatización, herramientas de análisis de seguridad para evaluar código e imágenes, Security Gates para condicionar el avance del pipeline y Kubernetes como entorno final de despliegue. La observabilidad forma parte del seguimiento del estado de la aplicación y de la infraestructura.
 
 ## Aplicación de referencia
 
@@ -74,7 +74,7 @@ La API queda disponible por defecto en:
 http://localhost:3000
 ```
 
-Docker permite empaquetar la aplicación como una imagen reproducible. Esta imagen será el artefacto que podrá analizarse en fases posteriores del pipeline DevSecOps y servirá como base para el futuro despliegue en Kubernetes.
+Docker permite empaquetar la aplicación como una imagen reproducible. Esta imagen actúa como artefacto analizable dentro del pipeline DevSecOps y como base para el despliegue en Kubernetes.
 
 ## Publicación de imagen en GHCR
 
@@ -172,15 +172,15 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
 
 El workflow **Image Validation** incluye un escaneo de la imagen Docker con Trivy.
 
-Durante la integración del pipeline, Trivy se mantiene en modo informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear la ejecución.
+Trivy se mantiene en modo informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear la ejecución.
 
-El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda preparado en el workflow para reactivarse en la fase final. Cuando se active, bloqueará la ejecución si detecta vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
+El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda documentado en el workflow como criterio bloqueante para vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
 
 ## Escaneo de manifiestos Kubernetes con Trivy
 
 El workflow **Pre Analysis** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC durante la validación previa en la rama `pre`.
 
-En esta fase el escaneo no bloquea el pipeline, ya que se utiliza para obtener visibilidad inicial sobre la configuración de Kubernetes y preparar futuros controles de seguridad.
+El escaneo no bloquea el pipeline; se utiliza para obtener visibilidad sobre la configuración de Kubernetes y conservar evidencia de los hallazgos detectados.
 
 ## Detección de secretos con GitLeaks
 
@@ -241,22 +241,23 @@ Consultar datos de ejemplo:
 curl http://localhost:3000/items
 ```
 
-## Evolución prevista
+## Alcance técnico
 
-La evolución técnica del repositorio se realizará de forma progresiva, incorporando los componentes necesarios para validar el ciclo de vida DevSecOps definido en el TFG.
+El repositorio reúne los componentes necesarios para validar el ciclo de vida DevSecOps definido en el TFG:
 
-Las siguientes fases previstas incluyen:
+- publicación controlada de imágenes en GHCR;
+- validación de imágenes y manifiestos Kubernetes;
+- despliegue local en Kubernetes con Minikube;
+- configuración de observabilidad con Prometheus y Grafana mediante `kube-prometheus-stack`;
+- documentación de evidencias, métricas y decisiones técnicas del pipeline.
 
-- Publicación controlada de imágenes en un registry.
-- Despliegue automatizado en Kubernetes.
-- Incorporación de observabilidad mediante herramientas como Prometheus y Grafana.
-- Evaluación de mecanismos de protección perimetral, como un WAF.
+El WAF no forma parte de la configuración implementada en este estado del repositorio.
 
 ## Seguridad y datos de prueba
 
 El repositorio no incluye secretos reales, credenciales reales, tokens reales, claves privadas reales ni contraseñas reales.
 
-Los valores presentes en `.env.example` son falsos y están marcados como datos de laboratorio académico. Su finalidad es apoyar futuras validaciones del pipeline sin comprometer información sensible real.
+Los valores presentes en `.env.example` son falsos y están marcados como datos de laboratorio académico. Su finalidad es apoyar validaciones del pipeline sin comprometer información sensible real.
 
 ## Mantenimiento de dependencias
 
