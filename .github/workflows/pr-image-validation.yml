@@ -51,6 +51,17 @@ jobs:
           vuln-type: os,library
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
+      - name: Generate image SBOM
+        id: trivy_sbom
+        if: always() && steps.docker_build.outcome == 'success'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secure-kube-ops:${{ github.sha }}
+          format: cyclonedx
+          output: reports/tools/sbom.cyclonedx.json
+          exit-code: 0
+
       - name: Write Image Validation metadata and summary
         if: always()
         run: |
@@ -66,7 +77,8 @@ jobs:
             "artifact_type": "devsecops-evidence",
             "controls": {
               "docker_build": "${{ steps.docker_build.outcome }}",
-              "trivy_image_scan": "${{ steps.trivy_image_scan.outcome }}"
+              "trivy_image_scan": "${{ steps.trivy_image_scan.outcome }}",
+              "trivy_sbom": "${{ steps.trivy_sbom.outcome }}"
             }
           }
           EOF
@@ -78,6 +90,7 @@ jobs:
             echo "| --- | --- | --- |"
             echo "| Docker build | ${{ steps.docker_build.outcome }} | metadata.json |"
             echo "| Trivy image scan | ${{ steps.trivy_image_scan.outcome }} | tools/trivy-image.json |"
+            echo "| Trivy SBOM | ${{ steps.trivy_sbom.outcome }} | tools/sbom.cyclonedx.json |"
             echo ""
             echo "Image: \`secure-kube-ops:${{ github.sha }}\`"
             echo "Commit: \`${{ github.sha }}\`"

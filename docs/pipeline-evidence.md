@@ -57,6 +57,16 @@ reports/tools/trivy-image.json
 
 Esta estructura facilita comparar ejecuciones, localizar evidencias concretas y justificar los controles aplicados en el TFG.
 
+## Fase 3: SBOM de imagen
+
+La tercera fase incorpora un SBOM de la imagen Docker generada en **Image Validation**. El SBOM se genera con Trivy en formato CycloneDX y se conserva dentro del artifact normalizado:
+
+```text
+reports/tools/sbom.cyclonedx.json
+```
+
+El SBOM permite identificar los componentes incluidos en la imagen construida para la Pull Request. Esta evidencia complementa el escaneo de vulnerabilidades porque documenta la composición del artefacto analizado.
+
 ## Evidencias por workflow
 
 ### Pre Analysis
@@ -94,7 +104,8 @@ pull_request hacia main
 Controles:
 
 - Docker build;
-- Trivy image scan informativo.
+- Trivy image scan informativo;
+- generación de SBOM CycloneDX.
 
 Evidencias:
 
@@ -102,6 +113,7 @@ Evidencias:
 reports/metadata.json
 reports/summary.md
 reports/tools/trivy-image.json
+reports/tools/sbom.cyclonedx.json
 ```
 
 ### Branch Policy
@@ -162,4 +174,5 @@ Para documentar una ejecución en la memoria del TFG se usa:
 - artifact descargado de la ejecución;
 - `metadata.json` para identificar commit, workflow y resultado;
 - informes de `tools/` para justificar hallazgos de seguridad;
+- SBOM CycloneDX para evidenciar los componentes incluidos en la imagen;
 - enlace al run correspondiente en GitHub Actions.
