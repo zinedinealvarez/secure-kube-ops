@@ -24,6 +24,7 @@ jobs:
 
       - name: Detect secrets with GitLeaks
         id: gitleaks
+        continue-on-error: true
         if: github.actor != 'dependabot[bot]'
         uses: gitleaks/gitleaks-action@v2
         env:
@@ -47,10 +48,14 @@ jobs:
 
       - name: Run Semgrep SAST
         id: semgrep_sast
+        if: always()
+        continue-on-error: true
         run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/tools/semgrep.json
 
       - name: Informational Trivy Kubernetes config scan
         id: trivy_config_scan
+        if: always()
+        continue-on-error: true
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
@@ -100,7 +105,68 @@ jobs:
             echo "Branch: \`${{ github.ref_name }}\`"
             echo ""
             echo "Artifact structure: \`metadata.json\`, \`pre-analysis-security-report.html\`, \`tools/\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } > reports/summary.md
+
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Pre Analysis pipeline metrics
+        if: always()
+        run: |
+          PIPELINE_RESULT="success"
+          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || [ "${{ steps.trivy_config_scan.outcome }}" = "failure" ]; then
+            PIPELINE_RESULT="failure"
+          fi
+
+          cat > reports/metrics.prom <<EOF
+          # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
+          # TYPE securekubeops_pipeline_execution_total counter
+          securekubeops_pipeline_execution_total{workflow="pre_analysis",event="push",branch_type="pre",result="${PIPELINE_RESULT}"} 1
+          # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
+          # TYPE securekubeops_pipeline_control_total counter
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="gitleaks",category="secret_detection",result="${{ steps.gitleaks.outcome }}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="semgrep_sast",category="sast",result="${{ steps.semgrep_sast.outcome }}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_scan.outcome }}"} 1
+          # HELP securekubeops_security_findings Security findings grouped by tool, scan type and severity.
+          # TYPE securekubeops_security_findings gauge
+          EOF
+
+          node <<'NODE'
+          const fs = require('fs');
+          const output = 'reports/metrics.prom';
+          const severities = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+          const semgrepSeverities = ['INFO', 'WARNING', 'ERROR'];
+
+          function append(line) {
+            fs.appendFileSync(output, `${line}\n`);
+          }
+
+          function readJson(path) {
+            if (!fs.existsSync(path)) return null;
+            return JSON.parse(fs.readFileSync(path, 'utf8'));
+          }
+
+          const trivyConfig = readJson('reports/tools/trivy-config.json');
+          const trivyCounts = Object.fromEntries(severities.map((severity) => [severity, 0]));
+          for (const result of trivyConfig?.Results || []) {
+            for (const item of result.Misconfigurations || []) {
+              const severity = String(item.Severity || 'UNKNOWN').toUpperCase();
+              if (severity in trivyCounts) trivyCounts[severity] += 1;
+            }
+          }
+          for (const severity of severities) {
+            append(`securekubeops_security_findings{workflow="pre_analysis",tool="trivy",scan_type="config",severity="${severity}"} ${trivyCounts[severity]}`);
+          }
+
+          const semgrep = readJson('reports/tools/semgrep.json');
+          const semgrepCounts = Object.fromEntries(semgrepSeverities.map((severity) => [severity, 0]));
+          for (const finding of semgrep?.results || []) {
+            const severity = String(finding.extra?.severity || 'INFO').toUpperCase();
+            if (severity in semgrepCounts) semgrepCounts[severity] += 1;
+          }
+          for (const severity of semgrepSeverities) {
+            append(`securekubeops_security_findings{workflow="pre_analysis",tool="semgrep",scan_type="sast",severity="${severity}"} ${semgrepCounts[severity]}`);
+          }
+          NODE
 
       - name: Generate Pre Analysis HTML report
         if: always()
@@ -158,3 +224,13 @@ jobs:
           path: reports/
           retention-days: 90
           if-no-files-found: warn
+
+      - name: Fail Pre Analysis if required controls failed
+        if: always()
+        run: |
+          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || \
+             [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || \
+             [ "${{ steps.trivy_config_scan.outcome }}" = "failure" ]; then
+            echo "One or more Pre Analysis controls failed."
+            exit 1
+          fi
