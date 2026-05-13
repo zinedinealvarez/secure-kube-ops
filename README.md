@@ -211,7 +211,7 @@ Los workflows de SecureKubeOps generan evidencias por ejecución para facilitar 
 Cada ejecución incorpora un resumen en GitHub Actions mediante `GITHUB_STEP_SUMMARY`, con el resultado de los controles ejecutados y la referencia al commit analizado. Además, los workflows suben artefactos con informes en formatos estructurados cuando aplica:
 
 - **Pre Analysis** conserva evidencias de GitLeaks, Semgrep y Trivy config.
-- **Image Validation** conserva metadatos de la imagen local construida y el informe de Trivy image.
+- **Image Validation** conserva metadatos de la imagen local construida, el informe de Trivy image y el SBOM CycloneDX de la imagen.
 - **Publish Image** conserva metadatos de la imagen publicada en GHCR.
 - **Branch Policy** conserva la validación de rama origen y rama destino.
 
