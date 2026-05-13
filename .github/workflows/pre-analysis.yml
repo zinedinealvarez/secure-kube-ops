@@ -1,0 +1,37 @@
+name: Pre Analysis
+
+on:
+  push:
+    branches:
+      - pre
+
+jobs:
+  pre-analysis:
+    name: Pre Analysis
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Detect secrets with GitLeaks
+        if: github.actor != 'dependabot[bot]'
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Semgrep SAST
+        run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto .
+
+      - name: Informational Trivy Kubernetes config scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: k8s/
+          format: table
+          exit-code: 0

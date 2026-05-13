@@ -1,0 +1,47 @@
+name: Image Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  image-validation:
+    name: Image Validation
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build Docker image
+        run: docker build -t secure-kube-ops:${{ github.sha }} .
+
+      - name: Informational Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secure-kube-ops:${{ github.sha }}
+          scanners: vuln
+          format: table
+          exit-code: 0
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+
+      # Trivy Security Gate validated during the TFG.
+      # It will be re-enabled in the final phase to block images with HIGH or CRITICAL vulnerabilities.
+      # - name: Trivy Security Gate
+      #   uses: aquasecurity/trivy-action@v0.36.0
+      #   with:
+      #     scan-type: image
+      #     image-ref: secure-kube-ops:${{ github.sha }}
+      #     scanners: vuln
+      #     format: table
+      #     exit-code: 1
+      #     ignore-unfixed: true
+      #     vuln-type: os,library
+      #     severity: HIGH,CRITICAL
