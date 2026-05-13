@@ -1,0 +1,8 @@
+rules:
+  - id: securekubeops-no-eval
+    message: "Avoid eval() because it can execute arbitrary code."
+    languages:
+      - javascript
+      - typescript
+    severity: HIGH
+    pattern: eval(...)

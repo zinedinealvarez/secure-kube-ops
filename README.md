@@ -26,7 +26,7 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-También existe un workflow principal de GitHub Actions llamado **DevSecOps Pipeline**, ubicado en `.github/workflows/devsecops-pipeline.yml`. En su versión actual, este workflow ejecuta el job **DevSecOps check**, que detecta posibles secretos con GitLeaks, analiza el código JavaScript/Node.js con Semgrep, valida la construcción de la imagen Docker en cada `push` y `pull_request` y ejecuta un escaneo informativo de vulnerabilidades con Trivy.
+El pipeline de GitHub Actions se organiza en workflows separados para facilitar la validación del flujo DevSecOps. **Pre Analysis** se ejecuta al hacer push a `pre` y agrupa GitLeaks, Semgrep y el escaneo de manifiestos Kubernetes con Trivy. **Image Validation** se ejecuta en Pull Requests hacia `main` y valida la construcción de la imagen Docker junto con el escaneo informativo de vulnerabilidades de imagen. **Publish Image** se ejecuta al actualizar `main` y publica la imagen validada en GHCR.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
@@ -78,7 +78,7 @@ Docker permite empaquetar la aplicación como una imagen reproducible. Esta imag
 
 ## Publicación de imagen en GHCR
 
-El workflow **DevSecOps Pipeline** publica automáticamente la imagen Docker en GitHub Container Registry cuando se ejecuta sobre un `push` a la rama `main`. No se publican imágenes desde eventos `pull_request`.
+El workflow **Publish Image** publica automáticamente la imagen Docker en GitHub Container Registry cuando se ejecuta sobre un `push` a la rama `main`. No se publican imágenes desde eventos `pull_request`.
 
 La imagen publicada sigue este formato:
 
@@ -170,7 +170,7 @@ helm install monitoring prometheus-community/kube-prometheus-stack \
 
 ## Escaneo de imagen con Trivy
 
-El workflow **DevSecOps Pipeline** incluye un escaneo de la imagen Docker con Trivy.
+El workflow **Image Validation** incluye un escaneo de la imagen Docker con Trivy.
 
 Durante la integración del pipeline, Trivy se mantiene en modo informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear la ejecución.
 
@@ -178,13 +178,13 @@ El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda 
 
 ## Escaneo de manifiestos Kubernetes con Trivy
 
-El workflow **DevSecOps Pipeline** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC antes de construir la imagen Docker.
+El workflow **Pre Analysis** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC durante la validación previa en la rama `pre`.
 
 En esta fase el escaneo no bloquea el pipeline, ya que se utiliza para obtener visibilidad inicial sobre la configuración de Kubernetes y preparar futuros controles de seguridad.
 
 ## Detección de secretos con GitLeaks
 
-El workflow **DevSecOps Pipeline** incorpora GitLeaks como control de detección de secretos. Este paso analiza el repositorio para identificar posibles credenciales, tokens o claves expuestas en el código o en el historial.
+El workflow **Pre Analysis** incorpora GitLeaks como control de detección de secretos. Este paso analiza el repositorio para identificar posibles credenciales, tokens o claves expuestas en el código o en el historial.
 
 GitLeaks mantiene sus reglas por defecto mediante la configuración incluida en `.gitleaks.toml`. Además, se añade una regla controlada para detectar `TFG_FAKE_SECRET`, utilizada únicamente para validar el caso negativo del TFG y comprobar que el pipeline falla cuando aparece un patrón definido como secreto.
 
@@ -196,11 +196,13 @@ En las pull requests creadas por Dependabot, el step de GitLeaks no se ejecuta p
 
 ## Análisis estático con Semgrep
 
-El workflow **DevSecOps Pipeline** incorpora Semgrep Community Edition como análisis estático de seguridad para el código JavaScript/Node.js de la aplicación de referencia.
+El workflow **Pre Analysis** incorpora Semgrep Community Edition como análisis estático de seguridad para el código fuente de la solución SecureKubeOps.
 
 CodeQL se evaluó como opción inicial, pero el repositorio se mantiene privado y GitHub requiere Code Security habilitado para usar code scanning en repositorios privados. Por ese motivo, Semgrep se utiliza como alternativa SAST ejecutable en CI sin publicar el repositorio ni depender de code scanning.
 
-Semgrep se ejecuta dentro del job principal mediante la imagen oficial `semgrep/semgrep` y el comando `semgrep scan --config auto`, manteniendo el análisis estático antes de la construcción de la imagen Docker.
+Semgrep se ejecuta mediante la imagen oficial `semgrep/semgrep` con el comando `semgrep scan --config auto --config .semgrep.yml .`. La configuración `--config auto` mantiene una selección automática de reglas adaptada al contenido del repositorio y `.semgrep.yml` añade reglas locales versionadas para documentar criterios propios del TFG.
+
+La política inicial versionada incluye una regla que detecta el uso de `eval()` en JavaScript y TypeScript, al tratarse de un patrón inseguro que puede ejecutar código arbitrario.
 
 ## Endpoints disponibles
 
