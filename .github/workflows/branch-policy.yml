@@ -16,6 +16,7 @@ jobs:
 
       - name: Ensure PR to main comes from pre
         id: branch_policy
+        continue-on-error: true
         run: |
           echo "Base branch: ${{ github.base_ref }}"
           echo "Source branch: ${{ github.head_ref }}"
@@ -57,7 +58,31 @@ jobs:
             echo "Source branch: \`${{ github.head_ref }}\`"
             echo ""
             echo "Artifact structure: \`metadata.json\`, \`branch-policy-report.html\`, \`tools/\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } > reports/summary.md
+
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Branch Policy pipeline metrics
+        if: always()
+        run: |
+          PIPELINE_RESULT="success"
+          PROMOTION_RESULT="allowed"
+          if [ "${{ steps.branch_policy.outcome }}" = "failure" ]; then
+            PIPELINE_RESULT="failure"
+            PROMOTION_RESULT="blocked"
+          fi
+
+          cat > reports/metrics.prom <<EOF
+          # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
+          # TYPE securekubeops_pipeline_execution_total counter
+          securekubeops_pipeline_execution_total{workflow="branch_policy",event="pull_request",branch_type="pull_request",result="${PIPELINE_RESULT}"} 1
+          # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
+          # TYPE securekubeops_pipeline_control_total counter
+          securekubeops_pipeline_control_total{workflow="branch_policy",control="branch_policy",category="branch_policy",result="${{ steps.branch_policy.outcome }}"} 1
+          # HELP securekubeops_promotion_total Promotion-related events in the DevSecOps flow.
+          # TYPE securekubeops_promotion_total counter
+          securekubeops_promotion_total{stage="branch_policy",result="${PROMOTION_RESULT}"} 1
+          EOF
 
       - name: Generate Branch Policy HTML report
         if: always()
@@ -110,3 +135,11 @@ jobs:
           path: reports/
           retention-days: 90
           if-no-files-found: warn
+
+      - name: Fail Branch Policy if source branch is invalid
+        if: always()
+        run: |
+          if [ "${{ steps.branch_policy.outcome }}" = "failure" ]; then
+            echo "Branch Policy failed: Pull Requests to main must come from pre."
+            exit 1
+          fi

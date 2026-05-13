@@ -23,10 +23,13 @@ jobs:
 
       - name: Build Docker image
         id: docker_build
+        continue-on-error: true
         run: docker build -t ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }} .
 
       - name: Login to GitHub Container Registry
         id: ghcr_login
+        if: always() && steps.docker_build.outcome == 'success'
+        continue-on-error: true
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -35,6 +38,8 @@ jobs:
 
       - name: Push Docker image to GHCR
         id: ghcr_push
+        if: always() && steps.docker_build.outcome == 'success' && steps.ghcr_login.outcome == 'success'
+        continue-on-error: true
         run: docker push ghcr.io/zinedinealvarez/secure-kube-ops:${{ github.sha }}
 
       - name: Record published image evidence
@@ -73,7 +78,35 @@ jobs:
             echo "Commit: \`${{ github.sha }}\`"
             echo ""
             echo "Artifact structure: \`metadata.json\`, \`publish-image-report.html\`, \`tools/\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          } > reports/summary.md
+
+          cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Publish Image pipeline metrics
+        if: always()
+        run: |
+          PIPELINE_RESULT="success"
+          PUBLISH_RESULT="success"
+          if [ "${{ steps.docker_build.outcome }}" = "failure" ] || [ "${{ steps.ghcr_login.outcome }}" = "failure" ] || [ "${{ steps.ghcr_push.outcome }}" = "failure" ]; then
+            PIPELINE_RESULT="failure"
+          fi
+          if [ "${{ steps.ghcr_push.outcome }}" = "failure" ]; then
+            PUBLISH_RESULT="failure"
+          fi
+
+          cat > reports/metrics.prom <<EOF
+          # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
+          # TYPE securekubeops_pipeline_execution_total counter
+          securekubeops_pipeline_execution_total{workflow="publish_image",event="push",branch_type="main",result="${PIPELINE_RESULT}"} 1
+          # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
+          # TYPE securekubeops_pipeline_control_total counter
+          securekubeops_pipeline_control_total{workflow="publish_image",control="docker_build",category="image_build",result="${{ steps.docker_build.outcome }}"} 1
+          securekubeops_pipeline_control_total{workflow="publish_image",control="ghcr_login",category="registry_publish",result="${{ steps.ghcr_login.outcome }}"} 1
+          securekubeops_pipeline_control_total{workflow="publish_image",control="ghcr_push",category="registry_publish",result="${{ steps.ghcr_push.outcome }}"} 1
+          # HELP securekubeops_promotion_total Promotion-related events in the DevSecOps flow.
+          # TYPE securekubeops_promotion_total counter
+          securekubeops_promotion_total{stage="ghcr_publish",result="${PUBLISH_RESULT}"} 1
+          EOF
 
       - name: Generate Publish Image HTML report
         if: always()
@@ -131,3 +164,13 @@ jobs:
           path: reports/
           retention-days: 90
           if-no-files-found: warn
+
+      - name: Fail Publish Image if required controls failed
+        if: always()
+        run: |
+          if [ "${{ steps.docker_build.outcome }}" = "failure" ] || \
+             [ "${{ steps.ghcr_login.outcome }}" = "failure" ] || \
+             [ "${{ steps.ghcr_push.outcome }}" = "failure" ]; then
+            echo "Publish Image failed before completing all required publication steps."
+            exit 1
+          fi
