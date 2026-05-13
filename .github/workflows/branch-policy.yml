@@ -11,7 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Prepare reports directory
+        run: mkdir -p reports
+
       - name: Ensure PR to main comes from pre
+        id: branch_policy
         run: |
           echo "Base branch: ${{ github.base_ref }}"
           echo "Source branch: ${{ github.head_ref }}"
@@ -20,3 +24,39 @@ jobs:
             echo "Pull Requests to main must come from pre."
             exit 1
           fi
+
+      - name: Record Branch Policy evidence
+        if: always()
+        run: |
+          cat > reports/branch-policy-summary.json <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "base_branch": "${{ github.base_ref }}",
+            "source_branch": "${{ github.head_ref }}",
+            "outcome": "${{ steps.branch_policy.outcome }}"
+          }
+          EOF
+
+      - name: Write Branch Policy summary
+        if: always()
+        run: |
+          {
+            echo "## Branch Policy evidence"
+            echo ""
+            echo "| Control | Result | Evidence |"
+            echo "| --- | --- | --- |"
+            echo "| Validate source branch | ${{ steps.branch_policy.outcome }} | branch-policy-summary.json |"
+            echo ""
+            echo "Base branch: \`${{ github.base_ref }}\`"
+            echo "Source branch: \`${{ github.head_ref }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Branch Policy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: securekubeops-branch-policy-${{ github.run_id }}-${{ github.sha }}
+          path: reports/
+          retention-days: 90
+          if-no-files-found: warn
