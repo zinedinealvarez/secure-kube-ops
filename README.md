@@ -204,6 +204,19 @@ Semgrep se ejecuta mediante la imagen oficial `semgrep/semgrep` con el comando `
 
 La política inicial versionada incluye una regla que detecta el uso de `eval()` en JavaScript y TypeScript, al tratarse de un patrón inseguro que puede ejecutar código arbitrario.
 
+## Informes y evidencias del pipeline
+
+Los workflows de SecureKubeOps generan evidencias por ejecución para facilitar la revisión técnica del pipeline DevSecOps dentro del TFG.
+
+Cada ejecución incorpora un resumen en GitHub Actions mediante `GITHUB_STEP_SUMMARY`, con el resultado de los controles ejecutados y la referencia al commit analizado. Además, los workflows suben artefactos con informes en formatos estructurados cuando aplica:
+
+- **Pre Analysis** conserva evidencias de GitLeaks, Semgrep y Trivy config.
+- **Image Validation** conserva metadatos de la imagen local construida y el informe de Trivy image.
+- **Publish Image** conserva metadatos de la imagen publicada en GHCR.
+- **Branch Policy** conserva la validación de rama origen y rama destino.
+
+Los artefactos se publican con nombres asociados al workflow, al `run_id` y al SHA del commit. La retención configurada es de 90 días, suficiente para conservar evidencias por ejecución durante el desarrollo y validación del TFG.
+
 ## Endpoints disponibles
 
 Comprobar el estado de la aplicación:

@@ -19,19 +19,75 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Prepare reports directory
+        run: mkdir -p reports
+
       - name: Detect secrets with GitLeaks
+        id: gitleaks
         if: github.actor != 'dependabot[bot]'
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Record GitLeaks evidence
+        if: always()
+        run: |
+          cat > reports/gitleaks-summary.json <<EOF
+          {
+            "tool": "GitLeaks",
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "commit": "${{ github.sha }}",
+            "actor": "${{ github.actor }}",
+            "outcome": "${{ steps.gitleaks.outcome }}",
+            "skipped_for_dependabot": "${{ github.actor == 'dependabot[bot]' }}"
+          }
+          EOF
+
       - name: Run Semgrep SAST
-        run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml .
+        id: semgrep_sast
+        run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/semgrep.json
 
       - name: Informational Trivy Kubernetes config scan
+        id: trivy_config_scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
           scan-ref: k8s/
           format: table
           exit-code: 0
+
+      - name: Generate Trivy Kubernetes config report
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: k8s/
+          format: json
+          output: reports/trivy-config.json
+          exit-code: 0
+
+      - name: Write Pre Analysis summary
+        if: always()
+        run: |
+          {
+            echo "## Pre Analysis evidence"
+            echo ""
+            echo "| Control | Result | Evidence |"
+            echo "| --- | --- | --- |"
+            echo "| GitLeaks | ${{ steps.gitleaks.outcome }} | gitleaks-summary.json |"
+            echo "| Semgrep SAST | ${{ steps.semgrep_sast.outcome }} | semgrep.json |"
+            echo "| Trivy config | ${{ steps.trivy_config_scan.outcome }} | trivy-config.json |"
+            echo ""
+            echo "Commit: \`${{ github.sha }}\`"
+            echo "Branch: \`${{ github.ref_name }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Pre Analysis reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: securekubeops-pre-analysis-${{ github.run_id }}-${{ github.sha }}
+          path: reports/
+          retention-days: 90
+          if-no-files-found: warn

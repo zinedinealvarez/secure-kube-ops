@@ -17,10 +17,27 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v6
 
+      - name: Prepare reports directory
+        run: mkdir -p reports
+
       - name: Build Docker image
+        id: docker_build
         run: docker build -t secure-kube-ops:${{ github.sha }} .
 
+      - name: Record image validation metadata
+        run: |
+          cat > reports/image-validation-metadata.json <<EOF
+          {
+            "workflow": "${{ github.workflow }}",
+            "run_id": "${{ github.run_id }}",
+            "commit": "${{ github.sha }}",
+            "image": "secure-kube-ops:${{ github.sha }}",
+            "event": "${{ github.event_name }}"
+          }
+          EOF
+
       - name: Informational Trivy image scan
+        id: trivy_image_scan
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: image
@@ -31,6 +48,44 @@ jobs:
           ignore-unfixed: true
           vuln-type: os,library
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+
+      - name: Generate Trivy image report
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secure-kube-ops:${{ github.sha }}
+          scanners: vuln
+          format: json
+          output: reports/trivy-image.json
+          exit-code: 0
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+
+      - name: Write Image Validation summary
+        if: always()
+        run: |
+          {
+            echo "## Image Validation evidence"
+            echo ""
+            echo "| Control | Result | Evidence |"
+            echo "| --- | --- | --- |"
+            echo "| Docker build | ${{ steps.docker_build.outcome }} | image-validation-metadata.json |"
+            echo "| Trivy image scan | ${{ steps.trivy_image_scan.outcome }} | trivy-image.json |"
+            echo ""
+            echo "Image: \`secure-kube-ops:${{ github.sha }}\`"
+            echo "Commit: \`${{ github.sha }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload Image Validation reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: securekubeops-image-validation-${{ github.run_id }}-${{ github.sha }}
+          path: reports/
+          retention-days: 90
+          if-no-files-found: warn
 
       # Trivy Security Gate validated during the TFG.
       # It will be re-enabled in the final phase to block images with HIGH or CRITICAL vulnerabilities.
