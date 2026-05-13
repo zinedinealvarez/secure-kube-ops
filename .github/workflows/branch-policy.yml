@@ -56,10 +56,47 @@ jobs:
             echo "Base branch: \`${{ github.base_ref }}\`"
             echo "Source branch: \`${{ github.head_ref }}\`"
             echo ""
-            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`tools/\`"
+            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`report.html\`, \`tools/\`"
           } > reports/summary.md
 
           cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Branch Policy HTML report
+        if: always()
+        run: |
+          cat > reports/report.html <<EOF
+          <!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <title>SecureKubeOps - Branch Policy evidence</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 2rem; color: #1f2937; }
+              h1 { margin-bottom: 0.25rem; }
+              .meta { color: #4b5563; margin-bottom: 1.5rem; }
+              table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+              th, td { border: 1px solid #d1d5db; padding: 0.65rem; text-align: left; }
+              th { background: #f3f4f6; }
+              code { background: #f3f4f6; padding: 0.15rem 0.3rem; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>SecureKubeOps - Branch Policy</h1>
+            <p class="meta">Evidencia generada por GitHub Actions para el TFG.</p>
+            <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
+            <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
+            <p><strong>Pull Request:</strong> <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code></p>
+            <table>
+              <thead>
+                <tr><th>Control</th><th>Resultado</th><th>Evidencia</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>Validate source branch</td><td>${{ steps.branch_policy.outcome }}</td><td>metadata.json</td></tr>
+              </tbody>
+            </table>
+          </body>
+          </html>
+          EOF
 
       - name: Upload Branch Policy reports
         if: always()

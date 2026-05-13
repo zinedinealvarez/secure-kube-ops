@@ -98,10 +98,50 @@ jobs:
             echo "Commit: \`${{ github.sha }}\`"
             echo "Branch: \`${{ github.ref_name }}\`"
             echo ""
-            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`tools/\`"
+            echo "Artifact structure: \`metadata.json\`, \`summary.md\`, \`report.html\`, \`tools/\`"
           } > reports/summary.md
 
           cat reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Generate Pre Analysis HTML report
+        if: always()
+        run: |
+          cat > reports/report.html <<EOF
+          <!doctype html>
+          <html lang="es">
+          <head>
+            <meta charset="utf-8">
+            <title>SecureKubeOps - Pre Analysis evidence</title>
+            <style>
+              body { font-family: Arial, sans-serif; margin: 2rem; color: #1f2937; }
+              h1 { margin-bottom: 0.25rem; }
+              .meta { color: #4b5563; margin-bottom: 1.5rem; }
+              table { border-collapse: collapse; width: 100%; margin-top: 1rem; }
+              th, td { border: 1px solid #d1d5db; padding: 0.65rem; text-align: left; }
+              th { background: #f3f4f6; }
+              code { background: #f3f4f6; padding: 0.15rem 0.3rem; border-radius: 4px; }
+            </style>
+          </head>
+          <body>
+            <h1>SecureKubeOps - Pre Analysis</h1>
+            <p class="meta">Evidencia generada por GitHub Actions para el TFG.</p>
+            <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
+            <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
+            <p><strong>Commit:</strong> <code>${{ github.sha }}</code></p>
+            <p><strong>Branch:</strong> <code>${{ github.ref_name }}</code></p>
+            <table>
+              <thead>
+                <tr><th>Control</th><th>Resultado</th><th>Evidencia</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>GitLeaks</td><td>${{ steps.gitleaks.outcome }}</td><td>tools/gitleaks-summary.json</td></tr>
+                <tr><td>Semgrep SAST</td><td>${{ steps.semgrep_sast.outcome }}</td><td>tools/semgrep.json</td></tr>
+                <tr><td>Trivy config</td><td>${{ steps.trivy_config_scan.outcome }}</td><td>tools/trivy-config.json</td></tr>
+              </tbody>
+            </table>
+          </body>
+          </html>
+          EOF
 
       - name: Upload Pre Analysis reports
         if: always()

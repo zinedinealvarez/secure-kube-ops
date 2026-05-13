@@ -217,7 +217,7 @@ Cada ejecución incorpora un resumen en GitHub Actions mediante `GITHUB_STEP_SUM
 
 Los artefactos se publican con nombres asociados al workflow, al `run_id` y al SHA del commit. La retención configurada es de 90 días, suficiente para conservar evidencias por ejecución durante el desarrollo y validación del TFG.
 
-La evolución de esta estrategia y la estructura normalizada de los artifacts se documenta en `docs/pipeline-evidence.md`.
+Cada artifact incluye también `report.html`, un informe estático descargable pensado como evidencia visual de la ejecución. La evolución de esta estrategia y la estructura normalizada de los artifacts se documenta en `docs/pipeline-evidence.md`.
 
 ## Endpoints disponibles
 

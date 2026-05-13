@@ -33,6 +33,7 @@ La segunda fase normaliza el contenido interno de los artifacts. Todos los workf
 reports/
   metadata.json
   summary.md
+  report.html
   tools/
 ```
 
@@ -67,6 +68,16 @@ reports/tools/sbom.cyclonedx.json
 
 El SBOM permite identificar los componentes incluidos en la imagen construida para la Pull Request. Esta evidencia complementa el escaneo de vulnerabilidades porque documenta la composición del artefacto analizado.
 
+## Fase 4: informe HTML descargable
+
+La cuarta fase incorpora un informe HTML estático dentro de cada artifact:
+
+```text
+reports/report.html
+```
+
+Este informe presenta de forma visual los metadatos principales de la ejecución, los controles ejecutados, el resultado de cada control y los archivos de evidencia generados. El HTML no sustituye a los JSON, SARIF o SBOM originales; funciona como una vista resumida para revisión y documentación académica.
+
 ## Evidencias por workflow
 
 ### Pre Analysis
@@ -88,6 +99,7 @@ Evidencias:
 ```text
 reports/metadata.json
 reports/summary.md
+reports/report.html
 reports/tools/gitleaks-summary.json
 reports/tools/semgrep.json
 reports/tools/trivy-config.json
@@ -112,6 +124,7 @@ Evidencias:
 ```text
 reports/metadata.json
 reports/summary.md
+reports/report.html
 reports/tools/trivy-image.json
 reports/tools/sbom.cyclonedx.json
 ```
@@ -133,6 +146,7 @@ Evidencias:
 ```text
 reports/metadata.json
 reports/summary.md
+reports/report.html
 ```
 
 ### Publish Image
@@ -154,6 +168,7 @@ Evidencias:
 ```text
 reports/metadata.json
 reports/summary.md
+reports/report.html
 ```
 
 La imagen publicada queda disponible en GHCR con etiqueta basada en el SHA del commit:
@@ -173,6 +188,7 @@ Para documentar una ejecución en la memoria del TFG se usa:
 - captura o referencia al summary del workflow;
 - artifact descargado de la ejecución;
 - `metadata.json` para identificar commit, workflow y resultado;
+- `report.html` como informe visual descargable;
 - informes de `tools/` para justificar hallazgos de seguridad;
 - SBOM CycloneDX para evidenciar los componentes incluidos en la imagen;
 - enlace al run correspondiente en GitHub Actions.
