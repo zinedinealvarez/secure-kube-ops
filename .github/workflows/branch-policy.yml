@@ -132,7 +132,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: securekubeops-branch-policy-results-${{ github.run_id }}-${{ github.sha }}
-          path: reports/
+          path: |
+            reports/metadata.json
+            reports/metrics.prom
+            reports/branch-policy-report.html
           retention-days: 90
           if-no-files-found: warn
 

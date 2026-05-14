@@ -158,7 +158,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: securekubeops-ghcr-publish-results-${{ github.run_id }}-${{ github.sha }}
-          path: reports/
+          path: |
+            reports/metadata.json
+            reports/metrics.prom
+            reports/publish-image-report.html
           retention-days: 90
           if-no-files-found: warn
 

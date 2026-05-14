@@ -32,7 +32,6 @@ La segunda fase normaliza el contenido interno de los artifacts. Todos los workf
 ```text
 reports/
   metadata.json
-  summary.md
   metrics.prom
   <workflow-report>.html
   tools/
@@ -48,7 +47,7 @@ reports/
 - tipo de artifact;
 - resultado de los controles ejecutados.
 
-El resumen en Markdown se muestra directamente en GitHub Actions mediante `GITHUB_STEP_SUMMARY` y también se conserva como `summary.md` dentro del artifact. El artifact conserva `metadata.json`, `metrics.prom`, un informe HTML específico del workflow y los informes específicos de herramientas dentro de `tools/`, por ejemplo:
+El resumen en Markdown se muestra directamente en GitHub Actions mediante `GITHUB_STEP_SUMMARY`. El artifact conserva `metadata.json`, `metrics.prom`, un informe HTML específico del workflow y los informes específicos de herramientas dentro de `tools/`, por ejemplo:
 
 ```text
 reports/tools/gitleaks-summary.json
@@ -71,7 +70,7 @@ El flujo aplicado es:
 controles -> evidencias -> artifact -> fallo final si corresponde
 ```
 
-Los controles principales registran su resultado sin detener inmediatamente el job. Después se generan `metadata.json`, `summary.md`, `metrics.prom`, el informe HTML y el artifact. Finalmente, un step de cierre evalúa los controles obligatorios y marca el workflow como fallido si corresponde.
+Los controles principales registran su resultado sin detener inmediatamente el job. Después se generan `metadata.json`, `metrics.prom`, el resumen visible en GitHub Actions, el informe HTML y el artifact. Finalmente, un step de cierre evalúa los controles obligatorios y marca el workflow como fallido si corresponde.
 
 Este diseño permite conservar evidencias incluso cuando el pipeline termina en rojo.
 
@@ -246,7 +245,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/metrics.prom
 reports/pre-analysis-security-report.html
 reports/tools/gitleaks-summary.json
@@ -272,7 +270,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/metrics.prom
 reports/image-validation-security-report.html
 reports/tools/trivy-image.json
@@ -295,7 +292,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/metrics.prom
 reports/branch-policy-report.html
 ```
@@ -318,7 +314,6 @@ Evidencias:
 
 ```text
 reports/metadata.json
-reports/summary.md
 reports/metrics.prom
 reports/publish-image-report.html
 ```
