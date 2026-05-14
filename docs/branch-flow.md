@@ -1,17 +1,17 @@
 # Flujo de ramas
 
-El repositorio de SecureKubeOps utiliza un flujo de ramas simple con dos ramas:
+El repositorio de SecureKubeOps utiliza un flujo de ramas simple basado en ramas de validación con prefijo `pre-` y una rama de producción `main`.
 
-- `pre`: rama de trabajo y validación. En esta rama se trabaja directamente y se permite hacer push.
+- `pre-*`: ramas de trabajo y validación. En estas ramas se trabaja directamente y se permite hacer push.
 - `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
 
 ## Flujo de trabajo
 
 El flujo operativo funciona así:
 
-1. Los cambios se hacen directamente en `pre`.
-2. Se hace push a `pre`.
-3. Se abre una Pull Request desde `pre` hacia `main`.
+1. Los cambios se hacen directamente en una rama con prefijo `pre-`, por ejemplo `pre-observability` o `pre-pipeline`.
+2. Se hace push a esa rama `pre-*`.
+3. Se abre una Pull Request desde la rama `pre-*` hacia `main`.
 4. `main` solo se actualiza mediante Pull Request.
 5. El merge a `main` se realiza cuando pasan los checks obligatorios de GitHub Actions.
 
@@ -47,7 +47,7 @@ Changes must be made through a pull request.
 2 of 2 required status checks are expected.
 ```
 
-Este resultado confirma que `main` queda protegida y que los cambios entran mediante Pull Request desde `pre`.
+Este resultado confirma que `main` queda protegida y que los cambios entran mediante Pull Request desde ramas con prefijo `pre-`.
 
 ## Nota sobre disponibilidad de Branch protection
 

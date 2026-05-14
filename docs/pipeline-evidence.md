@@ -232,7 +232,7 @@ El número de componentes del SBOM no se exporta como métrica para mantener el 
 Evento:
 
 ```text
-push a pre
+push a ramas pre-*
 ```
 
 Controles:
@@ -286,7 +286,7 @@ pull_request hacia main
 
 Control:
 
-- validación de rama origen `pre`.
+- validación de rama origen con prefijo `pre-`.
 
 Evidencias:
 

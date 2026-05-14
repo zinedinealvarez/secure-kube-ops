@@ -3,7 +3,7 @@ name: Pre Analysis
 on:
   push:
     branches:
-      - pre
+      - 'pre-*'
 
 jobs:
   pre-analysis:

@@ -6,9 +6,9 @@ Este documento registra una validación real del pipeline DevSecOps de SecureKub
 
 El flujo validado sigue la organización de ramas y workflows definida para SecureKubeOps:
 
-1. Los cambios se integran en la rama `pre`.
+1. Los cambios se integran en una rama con prefijo `pre-`.
 2. El workflow **Pre Analysis** valida la rama de trabajo.
-3. Se abre una Pull Request desde `pre` hacia `main`.
+3. Se abre una Pull Request desde la rama `pre-*` hacia `main`.
 4. Los workflows **Branch Policy** e **Image Validation** validan la Pull Request.
 5. Tras el merge en `main`, el workflow **Publish Image** publica la imagen en GitHub Container Registry.
 
@@ -30,7 +30,7 @@ El resumen Markdown se muestra en GitHub Actions mediante `GITHUB_STEP_SUMMARY`,
 | `Image Validation` | `25846960067` | `626f961d10ec98461ff8e8ca47aba9cff35da588` | `success` | `securekubeops-image-validation-security-results-25846960067-626f961d10ec98461ff8e8ca47aba9cff35da588.zip` |
 | `Publish Image` | `25847030208` | `91307035f93db7893a96263a39e43bc304b4c009` | `success` | `securekubeops-ghcr-publish-results-25847030208-91307035f93db7893a96263a39e43bc304b4c009.zip` |
 
-Los commits no tienen que coincidir en todos los workflows, ya que cada artifact corresponde a una etapa distinta del ciclo de vida: validación de `pre`, validación de Pull Request y publicación tras la actualización de `main`.
+Los commits no tienen que coincidir en todos los workflows, ya que cada artifact corresponde a una etapa distinta del ciclo de vida: validación de una rama `pre-*`, validación de Pull Request y publicación tras la actualización de `main`.
 
 ## Resultados por workflow
 
@@ -74,7 +74,7 @@ El artifact de **Branch Policy** contiene:
 - `metadata.json`;
 - `metrics.prom`.
 
-La Pull Request validada tiene como rama base `main` y como rama origen `pre`. El control `Validate source branch` termina con resultado `success`.
+La Pull Request validada tiene como rama base `main` y como rama origen una rama con prefijo `pre-`. El control `Validate source branch` termina con resultado `success`.
 
 La métrica de promoción asociada queda registrada como:
 
@@ -154,7 +154,7 @@ securekubeops_promotion_total{stage="ghcr_publish",result="success"} 1
 
 La validación confirma que el pipeline DevSecOps de SecureKubeOps ejecuta correctamente las fases principales del ciclo:
 
-- análisis previo de secretos, código y manifiestos Kubernetes en `pre`;
+- análisis previo de secretos, código y manifiestos Kubernetes en ramas `pre-*`;
 - validación de política de ramas en Pull Requests hacia `main`;
 - construcción, escaneo y generación de SBOM de la imagen candidata;
 - publicación de la imagen final en GitHub Container Registry tras la actualización de `main`;

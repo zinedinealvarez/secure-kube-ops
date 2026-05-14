@@ -10,7 +10,7 @@ Para esta fase se utiliza `kube-prometheus-stack` mediante Helm y un archivo `mo
 
 El objetivo es disponer de una configuración reproducible que pueda instalarse tanto en Minikube como en otros clústeres Kubernetes, manteniendo una configuración mínima y sin añadir componentes fuera del alcance actual.
 
-No se añaden por ahora:
+No se añaden:
 
 - métricas propias de la aplicación;
 - endpoint `/metrics`;
@@ -18,6 +18,16 @@ No se añaden por ahora:
 - Argo CD;
 - WAF;
 - alertas personalizadas.
+
+La documentación operativa se reparte así:
+
+| Documento | Uso |
+| --- | --- |
+| `docs/observability.md` | Instalación y comprobación de Prometheus, Grafana y Pushgateway. |
+| `docs/cluster-portability.md` | Puesta en marcha completa de SecureKubeOps en otro clúster Kubernetes. |
+| `docs/pipeline-metrics-integration.md` | Envío y validación de métricas del pipeline mediante Pushgateway. |
+| `docs/pipeline-dashboard.md` | Diseño de paneles y consultas PromQL para Grafana. |
+| `docs/pipeline-evidence.md` | Estructura de artifacts y origen de `reports/metrics.prom`. |
 
 ## Componentes incluidos
 
@@ -27,9 +37,10 @@ La configuración inicial habilita:
 - Grafana;
 - Prometheus Operator;
 - kube-state-metrics;
-- node-exporter.
+- node-exporter;
+- Pushgateway para recibir métricas agregadas del pipeline DevSecOps.
 
-Alertmanager queda deshabilitado en esta fase para mantener el alcance simple, ya que todavía no se definen alertas personalizadas.
+Alertmanager queda deshabilitado para mantener el alcance simple, ya que no se definen alertas personalizadas.
 
 ## Instalación
 
@@ -38,6 +49,16 @@ Añadir el repositorio de Helm:
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
+```
+
+Comprobar que Minikube y Kubernetes responden:
+
+```bash
+minikube status
+```
+
+```bash
+kubectl get nodes
 ```
 
 Aplicar el namespace de observabilidad:
@@ -51,11 +72,7 @@ Antes de instalar el chart, crear el Secret externo que utilizará Grafana para 
 ```powershell
 $env:GRAFANA_ADMIN_USER="admin"
 $env:GRAFANA_ADMIN_PASSWORD="TU_PASSWORD_LOCAL_NO_VERSIONADO"
-
-kubectl create secret generic monitoring-grafana-admin `
-  --namespace monitoring `
-  --from-literal=admin-user=$env:GRAFANA_ADMIN_USER `
-  --from-literal=admin-password=$env:GRAFANA_ADMIN_PASSWORD
+kubectl create secret generic monitoring-grafana-admin --namespace monitoring --from-literal=admin-user=$env:GRAFANA_ADMIN_USER --from-literal=admin-password=$env:GRAFANA_ADMIN_PASSWORD
 ```
 
 Las contraseñas reales quedan fuera de `README.md`, `docs/` y `monitoring/values.yaml`. El Secret se crea localmente en el clúster antes de instalar Helm. El archivo `monitoring/values.yaml` solo referencia el Secret y no contiene credenciales.
@@ -63,12 +80,31 @@ Las contraseñas reales quedan fuera de `README.md`, `docs/` y `monitoring/value
 Instalar `kube-prometheus-stack` fijando la versión del chart:
 
 ```bash
-helm install monitoring prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --version 84.5.0 \
-  -f monitoring/values.yaml
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
+Instalar Pushgateway fijando la versión del chart:
+
+```bash
+helm upgrade --install pushgateway prometheus-community/prometheus-pushgateway --namespace monitoring --version 3.6.0 -f monitoring/pushgateway-values.yaml
+```
+
+Aplicar el `ServiceMonitor` de Pushgateway:
+
+```bash
+kubectl apply -f monitoring/pushgateway-servicemonitor.yaml
+```
+
+Pushgateway se despliega como servicio interno `ClusterIP` y queda monitorizado por Prometheus mediante el manifiesto `monitoring/pushgateway-servicemonitor.yaml`. La configuración completa del envío de métricas del pipeline se documenta en `docs/pipeline-metrics-integration.md`.
+
+El orden de validación es:
+
+1. Comprobar Pods, Services y ServiceMonitor en el namespace `monitoring`.
+2. Abrir Pushgateway mediante `kubectl port-forward`.
+3. Enviar una métrica de prueba según `docs/pipeline-metrics-integration.md`.
+4. Abrir Prometheus mediante `kubectl port-forward`.
+5. Consultar la métrica de prueba en Prometheus.
+6. Abrir Grafana y usar `docs/pipeline-dashboard.md` como guía de paneles.
 
 ## Comprobación de recursos
 
@@ -82,6 +118,12 @@ Comprobar los Services:
 
 ```bash
 kubectl get svc -n monitoring
+```
+
+Comprobar el ServiceMonitor de Pushgateway:
+
+```bash
+kubectl get servicemonitor -n monitoring pushgateway
 ```
 
 ## Acceso a Grafana
@@ -132,23 +174,28 @@ Las métricas iniciales se centran en Kubernetes:
 - estado del Deployment;
 - disponibilidad de réplicas;
 - métricas del nodo Minikube;
-- estado general del clúster.
+- estado general del clúster;
+- métricas agregadas del pipeline DevSecOps enviadas manualmente a Pushgateway durante la validación.
 
 ## Encaje con SecureKubeOps
 
 La API Express sigue siendo una aplicación de referencia. La observabilidad se incorpora a SecureKubeOps como parte de la solución DevSecOps completa, junto con el pipeline, los controles de seguridad, la imagen Docker publicada en GHCR y el despliegue Kubernetes.
 
-Esta fase permite validar que el despliegue puede ser observado sin introducir todavía lógica específica de métricas dentro de la aplicación.
+Esta configuración permite validar que el despliegue puede ser observado sin introducir lógica específica de métricas dentro de la aplicación.
 
 ## Evidencias para el TFG
 
 Como evidencias técnicas pueden utilizarse:
 
 - `monitoring/values.yaml`;
+- `monitoring/pushgateway-values.yaml`;
+- `monitoring/pushgateway-servicemonitor.yaml`;
 - salida de `kubectl get pods -n monitoring`;
 - salida de `kubectl get svc -n monitoring`;
+- salida de `kubectl get servicemonitor -n monitoring pushgateway`;
 - acceso a Grafana mediante `port-forward`;
 - acceso a Prometheus mediante `port-forward`;
+- consulta de métricas `securekubeops_*` en Prometheus tras enviar manualmente un `metrics.prom` a Pushgateway;
 - visualización del Pod o Deployment de SecureKubeOps desde dashboards de Kubernetes.
 
 No se requieren capturas dentro del repositorio.
