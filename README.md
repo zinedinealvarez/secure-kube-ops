@@ -26,7 +26,7 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-El pipeline de GitHub Actions se organiza en workflows separados para facilitar la validación del flujo DevSecOps. **Pre Analysis** se ejecuta al hacer push a `pre` y agrupa GitLeaks, Semgrep y el escaneo de manifiestos Kubernetes con Trivy. **Image Validation** se ejecuta en Pull Requests hacia `main` y valida la construcción de la imagen Docker junto con el escaneo informativo de vulnerabilidades de imagen. **Publish Image** se ejecuta al actualizar `main` y publica la imagen validada en GHCR.
+El pipeline de GitHub Actions se organiza en workflows separados para facilitar la validación del flujo DevSecOps. **Pre Analysis** se ejecuta al hacer push a ramas con prefijo `pre-` y agrupa GitLeaks, Semgrep y el escaneo de manifiestos Kubernetes con Trivy. **Image Validation** se ejecuta en Pull Requests hacia `main` y valida la construcción de la imagen Docker junto con el escaneo informativo de vulnerabilidades de imagen. **Publish Image** se ejecuta al actualizar `main` y publica la imagen validada en GHCR.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
@@ -121,11 +121,7 @@ Crear el `imagePullSecret` para GHCR:
 ```powershell
 $env:GHCR_USERNAME="zinedinealvarez"
 $env:GHCR_TOKEN="TU_TOKEN_DE_GITHUB_CON_READ_PACKAGES"
-
-kubectl create secret docker-registry ghcr-pull-secret `
-  --docker-server=ghcr.io `
-  --docker-username=$env:GHCR_USERNAME `
-  --docker-password=$env:GHCR_TOKEN
+kubectl create secret docker-registry ghcr-pull-secret --docker-server=ghcr.io --docker-username=$env:GHCR_USERNAME --docker-password=$env:GHCR_TOKEN
 ```
 
 Aplicar los manifiestos:
@@ -159,13 +155,29 @@ curl http://localhost:3000/health
 
 La configuración inicial de observabilidad se encuentra en `monitoring/values.yaml` y está documentada en `docs/observability.md`.
 
+El orden recomendado para instalar y comprobar la observabilidad es:
+
+1. Instalar `kube-prometheus-stack` siguiendo `docs/observability.md`.
+2. Instalar Pushgateway con `monitoring/pushgateway-values.yaml`.
+3. Aplicar `monitoring/pushgateway-servicemonitor.yaml`.
+4. Enviar una métrica de prueba siguiendo `docs/pipeline-metrics-integration.md`.
+5. Consultar la métrica en Prometheus.
+6. Usar `docs/pipeline-dashboard.md` como diseño de paneles para Grafana.
+
 La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El namespace se entrega como manifiesto en `monitoring/namespace.yaml` y la contraseña de Grafana se configura mediante un Secret de Kubernetes que queda fuera del repositorio:
 
 ```bash
-helm install monitoring prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  --version 84.5.0 \
-  -f monitoring/values.yaml
+helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
+```
+
+Las métricas agregadas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación:
+
+```bash
+helm upgrade --install pushgateway prometheus-community/prometheus-pushgateway --namespace monitoring --version 3.6.0 -f monitoring/pushgateway-values.yaml
+```
+
+```bash
+kubectl apply -f monitoring/pushgateway-servicemonitor.yaml
 ```
 
 ## Escaneo de imagen con Trivy
@@ -178,7 +190,7 @@ El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda 
 
 ## Escaneo de manifiestos Kubernetes con Trivy
 
-El workflow **Pre Analysis** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC durante la validación previa en la rama `pre`.
+El workflow **Pre Analysis** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC durante la validación previa en ramas con prefijo `pre-`.
 
 El escaneo no bloquea el pipeline; se utiliza para obtener visibilidad sobre la configuración de Kubernetes y conservar evidencia de los hallazgos detectados.
 
@@ -217,9 +229,27 @@ Cada ejecución incorpora un resumen en GitHub Actions mediante `GITHUB_STEP_SUM
 
 Los artefactos se publican con nombres asociados al workflow, al `run_id` y al SHA del commit. La retención configurada es de 90 días, suficiente para conservar evidencias por ejecución durante el desarrollo y validación del TFG.
 
-Cada artifact incluye `metadata.json`, `summary.md`, `metrics.prom`, un informe HTML específico del workflow y los informes técnicos dentro de `tools/`. El resumen Markdown se muestra en GitHub Actions, mientras que el HTML funciona como informe estático descargable de la ejecución. La evolución de esta estrategia y la estructura normalizada de los artifacts se documenta en `docs/pipeline-evidence.md`.
+Cada artifact incluye `metadata.json`, `metrics.prom`, un informe HTML específico del workflow y los informes técnicos dentro de `tools/` cuando aplica. El resumen Markdown se muestra en GitHub Actions mediante `GITHUB_STEP_SUMMARY`, mientras que el HTML funciona como informe estático descargable de la ejecución. La evolución de esta estrategia y la estructura normalizada de los artifacts se documenta en `docs/pipeline-evidence.md`.
 
 El artifact SARIF automático de GitLeaks queda desactivado para evitar duplicar evidencias fuera del paquete normalizado de SecureKubeOps.
+
+## Documentación técnica
+
+La documentación técnica del repositorio se organiza en los siguientes documentos:
+
+| Documento | Contenido |
+| --- | --- |
+| `docs/branch-flow.md` | Flujo de ramas `pre-* -> main` y protección de `main`. |
+| `docs/criterios-parada-pipeline.md` | Criterios de validación y parada de los controles del pipeline. |
+| `docs/pipeline-evidence.md` | Estructura de artifacts, evidencias, métricas y reportes generados por los workflows. |
+| `docs/pipeline-validation.md` | Validación real del pipeline a partir de artifacts generados por GitHub Actions. |
+| `docs/pipeline-dashboard.md` | Diseño del dashboard de Grafana para visualizar métricas agregadas del pipeline. |
+| `docs/pipeline-metrics-integration.md` | Integración de métricas del pipeline mediante Pushgateway, Prometheus y Grafana. |
+| `docs/cluster-portability.md` | Puesta en marcha completa de SecureKubeOps en otro clúster Kubernetes. |
+| `docs/minikube-deployment.md` | Despliegue local de la API de referencia en Minikube. |
+| `docs/observability.md` | Configuración de observabilidad con `kube-prometheus-stack`. |
+| `docs/dependabot-decisions.md` | Decisiones tomadas sobre Pull Requests de Dependabot. |
+| `docs/lab-vulnerabilities.md` | Nota sobre datos de prueba y valores falsos utilizados en el contexto académico del TFG. |
 
 ## Endpoints disponibles
 
@@ -273,16 +303,16 @@ Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en
 
 ## Flujo de ramas
 
-El repositorio utiliza un flujo de ramas simple con dos ramas:
+El repositorio utiliza un flujo de ramas simple basado en ramas de validación con prefijo `pre-` y una rama de producción:
 
-- `pre`: rama de trabajo y validación. En esta rama se trabaja directamente y se permite hacer push.
+- `pre-*`: ramas de trabajo y validación. En estas ramas se trabaja directamente y se permite hacer push.
 - `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
 
 El flujo funciona así:
 
-1. Los cambios se hacen directamente en `pre`.
-2. Se hace push a `pre`.
-3. Se abre una Pull Request desde `pre` hacia `main`.
+1. Los cambios se hacen directamente en una rama con prefijo `pre-`, por ejemplo `pre-observability` o `pre-pipeline`.
+2. Se hace push a esa rama `pre-*`.
+3. Se abre una Pull Request desde la rama `pre-*` hacia `main`.
 4. `main` solo se actualiza mediante Pull Request.
 5. El merge a `main` se realiza cuando pasan los checks obligatorios.
 

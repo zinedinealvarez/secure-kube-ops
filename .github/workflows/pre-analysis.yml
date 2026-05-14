@@ -3,7 +3,7 @@ name: Pre Analysis
 on:
   push:
     branches:
-      - pre
+      - 'pre-*'
 
 jobs:
   pre-analysis:
@@ -221,7 +221,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: securekubeops-pre-analysis-security-results-${{ github.run_id }}-${{ github.sha }}
-          path: reports/
+          path: |
+            reports/metadata.json
+            reports/metrics.prom
+            reports/pre-analysis-security-report.html
+            reports/tools/
           retention-days: 90
           if-no-files-found: warn
 

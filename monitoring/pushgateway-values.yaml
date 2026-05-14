@@ -1,0 +1,25 @@
+fullnameOverride: pushgateway
+
+service:
+  type: ClusterIP
+  port: 9091
+  targetPort: 9091
+
+serviceMonitor:
+  enabled: false
+
+persistentVolume:
+  enabled: false
+
+securityContext:
+  fsGroup: 65534
+  runAsUser: 65534
+  runAsNonRoot: true
+
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  runAsUser: 65534
+  runAsNonRoot: true
+
+networkPolicy: {}

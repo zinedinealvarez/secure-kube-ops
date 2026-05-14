@@ -8,10 +8,10 @@ La especificación se organiza por workflow y describe el comportamiento esperad
 
 | Workflow | Evento | Función |
 | --- | --- | --- |
-| `Pre Analysis` | `push` a `pre` | Analiza secretos, código fuente y manifiestos Kubernetes antes de promover cambios a `main`. |
+| `Pre Analysis` | `push` a ramas `pre-*` | Analiza secretos, código fuente y manifiestos Kubernetes antes de promover cambios a `main`. |
 | `Image Validation` | Pull Request hacia `main` | Construye la imagen Docker y valida sus vulnerabilidades antes del merge. |
 | `Publish Image` | `push` a `main` | Construye y publica la imagen validada en GHCR. |
-| `Branch Policy` | Pull Request hacia `main` | Valida que la PR hacia `main` proviene de `pre`. |
+| `Branch Policy` | Pull Request hacia `main` | Valida que la PR hacia `main` proviene de una rama con prefijo `pre-`. |
 
 ## Required checks de `main`
 
@@ -32,7 +32,7 @@ Evento:
 on:
   push:
     branches:
-      - pre
+      - 'pre-*'
 ```
 
 ### Checkout del repositorio
@@ -72,7 +72,7 @@ Criterio de fallo:
 GitLeaks detecta un secreto, una credencial o un patrón controlado como `TFG_FAKE_SECRET`.
 
 Efecto del fallo:
-El pipeline se detiene y los cambios no quedan validados en `pre`.
+El pipeline se detiene y los cambios no quedan validados en la rama `pre-*`.
 
 Configuración YAML esperada:
 
@@ -225,13 +225,13 @@ on:
 ### Validate source branch
 
 Objetivo del control:
-Garantizar que las Pull Requests hacia `main` provienen exclusivamente de la rama `pre`.
+Garantizar que las Pull Requests hacia `main` provienen exclusivamente de ramas con prefijo `pre-`.
 
 Criterio de paso:
-La rama origen de la Pull Request es `pre`.
+La rama origen de la Pull Request comienza por `pre-`.
 
 Criterio de fallo:
-La Pull Request hacia `main` proviene de cualquier rama distinta de `pre`.
+La Pull Request hacia `main` proviene de una rama que no comienza por `pre-`.
 
 Efecto del fallo:
 El check `Validate source branch` falla y la Branch protection rule impide el merge hacia `main`.
@@ -239,18 +239,20 @@ El check `Validate source branch` falla y la Branch protection rule impide el me
 Configuración YAML esperada:
 
 ```yaml
-- name: Ensure PR to main comes from pre
+- name: Ensure PR to main comes from pre-prefixed branch
+  env:
+    SOURCE_BRANCH: ${{ github.head_ref }}
   run: |
     echo "Base branch: ${{ github.base_ref }}"
-    echo "Source branch: ${{ github.head_ref }}"
+    echo "Source branch: ${SOURCE_BRANCH}"
 
-    if [ "${{ github.head_ref }}" != "pre" ]; then
-      echo "Pull Requests to main must come from pre."
+    if [[ "${SOURCE_BRANCH}" != pre-* ]]; then
+      echo "Pull Requests to main must come from a branch with the pre- prefix."
       exit 1
     fi
 ```
 
-El criterio de parada se configura mediante la comparación de `github.head_ref` con `pre`.
+El criterio de parada se configura mediante la comprobación del prefijo `pre-` sobre `github.head_ref`.
 
 ## Workflow: Publish Image
 
@@ -355,5 +357,5 @@ Configuración YAML esperada:
 - Los hallazgos SAST que incumplen la política del proyecto bloquean el pipeline antes de construir artefactos.
 - Las configuraciones Kubernetes `HIGH` o `CRITICAL` bloquean la validación de manifiestos.
 - Las vulnerabilidades de imagen `HIGH` o `CRITICAL` con corrección disponible bloquean la PR hacia `main`.
-- La rama `main` solo recibe cambios desde `pre` mediante Pull Request.
+- La rama `main` solo recibe cambios desde ramas con prefijo `pre-` mediante Pull Request.
 - La imagen se publica en GHCR únicamente desde código fusionado en `main`.
