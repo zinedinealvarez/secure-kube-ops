@@ -86,12 +86,9 @@ jobs:
         if: always()
         run: |
           PIPELINE_RESULT="success"
-          PUBLISH_RESULT="success"
+          PUBLISH_RESULT="${{ steps.ghcr_push.outcome }}"
           if [ "${{ steps.docker_build.outcome }}" = "failure" ] || [ "${{ steps.ghcr_login.outcome }}" = "failure" ] || [ "${{ steps.ghcr_push.outcome }}" = "failure" ]; then
             PIPELINE_RESULT="failure"
-          fi
-          if [ "${{ steps.ghcr_push.outcome }}" = "failure" ]; then
-            PUBLISH_RESULT="failure"
           fi
 
           cat > reports/metrics.prom <<EOF
