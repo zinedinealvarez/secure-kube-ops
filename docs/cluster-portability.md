@@ -59,10 +59,10 @@ Contraseña local de Grafana:
 $env:GRAFANA_ADMIN_PASSWORD="TU_PASSWORD_LOCAL_NO_VERSIONADO"
 ```
 
-Ruta al archivo `metrics.prom` extraído de un artifact:
+Ruta al archivo `metrics.prom`:
 
 ```powershell
-$env:METRICS_PROM_PATH="C:\Users\Usuario\Downloads\artifact-extraido\metrics.prom"
+$prom = "C:\Users\Usuario\Downloads\metrics.prom"
 ```
 
 ## Comprobación del clúster
@@ -247,34 +247,51 @@ Invoke-WebRequest -UseBasicParsing -Uri http://localhost:9091/metrics/job/secure
 
 ## Validación con metrics.prom
 
-Cada workflow de GitHub Actions genera un artifact normalizado. Tras descargar y extraer el ZIP, el archivo `metrics.prom` queda en la raíz de la carpeta extraída.
+Cada workflow de GitHub Actions genera un artifact normalizado con `metrics.prom`. Si el archivo ya está extraído en `C:\Users\Usuario\Downloads`, se envía directamente desde esa ruta.
 
-Ejemplo:
+El `job` usado en Pushgateway identifica el workflow que ha generado el archivo:
 
-```text
-artifact-extraido/
-  metadata.json
-  metrics.prom
-  <workflow-report>.html
-  tools/
-```
+| Workflow | Job recomendado en Pushgateway |
+| --- | --- |
+| `Pre Analysis` | `securekubeops-pre-analysis` |
+| `Image Validation` | `securekubeops-image-validation` |
+| `Branch Policy` | `securekubeops-branch-policy` |
+| `Publish Image` | `securekubeops-publish-image` |
 
-Opción 1: situarse en la carpeta extraída:
-
-```powershell
-Set-Location "C:\Users\Usuario\Downloads\artifact-extraido"
-```
-
-Enviar `metrics.prom`:
+Definir la ruta del archivo:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-manual-validation" -Method Post -InFile "metrics.prom" -ContentType "text/plain"
+$prom = "C:\Users\Usuario\Downloads\metrics.prom"
 ```
 
-Opción 2: usar ruta absoluta:
+Comprobar que existe:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-manual-validation" -Method Post -InFile $env:METRICS_PROM_PATH -ContentType "text/plain"
+Test-Path $prom
+```
+
+Enviar un archivo de `Pre Analysis`:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-pre-analysis" -Method Post -InFile $prom -ContentType "text/plain"
+```
+
+Enviar un archivo de `Image Validation`:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-image-validation" -Method Post -InFile $prom -ContentType "text/plain"
+```
+
+Enviar un archivo de `Branch Policy`:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-branch-policy" -Method Post -InFile $prom -ContentType "text/plain"
+```
+
+Enviar un archivo de `Publish Image`:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-publish-image" -Method Post -InFile $prom -ContentType "text/plain"
 ```
 
 Comprobar que Pushgateway contiene métricas de SecureKubeOps:
@@ -283,10 +300,22 @@ Comprobar que Pushgateway contiene métricas de SecureKubeOps:
 (Invoke-WebRequest -UseBasicParsing -Uri http://localhost:9091/metrics).Content | Select-String "securekubeops_"
 ```
 
-Eliminar las métricas de la validación manual:
+Eliminar las métricas de un workflow concreto:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri http://localhost:9091/metrics/job/securekubeops-manual-validation -Method Delete
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-pre-analysis" -Method Delete
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-image-validation" -Method Delete
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-branch-policy" -Method Delete
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-publish-image" -Method Delete
 ```
 
 ## Validación en Prometheus
@@ -307,6 +336,12 @@ Consultar:
 
 ```promql
 securekubeops_pipeline_execution_total
+```
+
+Consultar solo las métricas enviadas para `Pre Analysis`:
+
+```promql
+securekubeops_pipeline_execution_total{job="securekubeops-pre-analysis"}
 ```
 
 Si la métrica no aparece inmediatamente, se espera al siguiente intervalo de scrape y se repite la consulta.

@@ -101,10 +101,10 @@ El orden de validación es:
 
 1. Comprobar Pods, Services y ServiceMonitor en el namespace `monitoring`.
 2. Abrir Pushgateway mediante `kubectl port-forward`.
-3. Enviar una métrica de prueba según `docs/pipeline-metrics-integration.md`.
+3. Enviar una métrica de prueba o un archivo `metrics.prom` según `docs/pipeline-metrics-integration.md`.
 4. Abrir Prometheus mediante `kubectl port-forward`.
-5. Consultar la métrica de prueba en Prometheus.
-6. Abrir Grafana y usar `docs/pipeline-dashboard.md` como guía de paneles.
+5. Consultar la métrica en Prometheus.
+6. Abrir Grafana y crear el dashboard usando `docs/pipeline-dashboard.md` como guía de paneles.
 
 ## Comprobación de recursos
 
@@ -195,7 +195,7 @@ Como evidencias técnicas pueden utilizarse:
 - salida de `kubectl get servicemonitor -n monitoring pushgateway`;
 - acceso a Grafana mediante `port-forward`;
 - acceso a Prometheus mediante `port-forward`;
-- consulta de métricas `securekubeops_*` en Prometheus tras enviar manualmente un `metrics.prom` a Pushgateway;
+- consulta de métricas `securekubeops_*` en Prometheus tras enviar manualmente un `metrics.prom` a Pushgateway con un `job` estable por workflow;
 - visualización del Pod o Deployment de SecureKubeOps desde dashboards de Kubernetes.
 
 No se requieren capturas dentro del repositorio.

@@ -160,9 +160,9 @@ El orden recomendado para instalar y comprobar la observabilidad es:
 1. Instalar `kube-prometheus-stack` siguiendo `docs/observability.md`.
 2. Instalar Pushgateway con `monitoring/pushgateway-values.yaml`.
 3. Aplicar `monitoring/pushgateway-servicemonitor.yaml`.
-4. Enviar una métrica de prueba siguiendo `docs/pipeline-metrics-integration.md`.
+4. Enviar una métrica de prueba o un archivo `metrics.prom` siguiendo `docs/pipeline-metrics-integration.md`.
 5. Consultar la métrica en Prometheus.
-6. Usar `docs/pipeline-dashboard.md` como diseño de paneles para Grafana.
+6. Crear el dashboard de Grafana usando `docs/pipeline-dashboard.md` como diseño de paneles.
 
 La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El namespace se entrega como manifiesto en `monitoring/namespace.yaml` y la contraseña de Grafana se configura mediante un Secret de Kubernetes que queda fuera del repositorio:
 
@@ -170,7 +170,7 @@ La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El n
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
-Las métricas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación:
+Las métricas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación usando un `job` estable por workflow, por ejemplo `securekubeops-pre-analysis`, `securekubeops-image-validation`, `securekubeops-branch-policy` o `securekubeops-publish-image`:
 
 ```bash
 helm upgrade --install pushgateway prometheus-community/prometheus-pushgateway --namespace monitoring --version 3.6.0 -f monitoring/pushgateway-values.yaml
