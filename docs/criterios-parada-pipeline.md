@@ -81,7 +81,19 @@ Configuración YAML esperada:
   if: github.actor != 'dependabot[bot]'
   env:
     WORKSPACE: ${{ github.workspace }}
-  run: docker run --rm -v "$WORKSPACE:/repo" ghcr.io/gitleaks/gitleaks:v8.24.2 git /repo --config /repo/.gitleaks.toml --report-format json --report-path /repo/reports/tools/gitleaks.json --redact --exit-code 1 --no-banner
+  run: |
+    mkdir -p reports/gitleaks-source
+    rsync -a --exclude='.git' --exclude='reports' ./ reports/gitleaks-source/
+    docker run --rm \
+      -v "$WORKSPACE/reports/gitleaks-source:/repo:ro" \
+      -v "$WORKSPACE/reports/tools:/reports" \
+      ghcr.io/gitleaks/gitleaks:v8.24.2 dir /repo \
+      --config /repo/.gitleaks.toml \
+      --report-format json \
+      --report-path /reports/gitleaks.json \
+      --redact \
+      --exit-code 1 \
+      --no-banner
 ```
 
 ### Semgrep SAST
