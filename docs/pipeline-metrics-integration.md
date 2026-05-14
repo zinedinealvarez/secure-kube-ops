@@ -1,6 +1,6 @@
 # Integración de métricas del pipeline
 
-Este documento describe cómo SecureKubeOps integra las métricas agregadas del pipeline DevSecOps con la capa de observabilidad en Kubernetes.
+Este documento describe cómo SecureKubeOps integra las métricas del pipeline DevSecOps con la capa de observabilidad en Kubernetes.
 
 El flujo de integración queda definido así:
 
@@ -22,7 +22,7 @@ Pushgateway resuelve este caso actuando como intermediario:
 4. Prometheus scrapea Pushgateway mediante el `ServiceMonitor`.
 5. Grafana consulta Prometheus usando PromQL.
 
-El detalle técnico de cada ejecución sigue estando en los artifacts. Pushgateway solo recibe métricas agregadas y de baja cardinalidad para construir paneles.
+El detalle técnico completo de cada ejecución sigue estando en los artifacts. Pushgateway recibe métricas orientadas a Grafana: estado de workflows, resultado de controles y hallazgos de seguridad enriquecidos sin exponer secretos.
 
 ## Enfoque de seguridad
 
@@ -37,7 +37,7 @@ Pushgateway se despliega como servicio interno de Kubernetes:
 
 GitHub Actions no envía métricas automáticamente a Pushgateway porque Pushgateway se mantiene como servicio interno del clúster. En Minikube, la validación local se realiza mediante `kubectl port-forward`.
 
-La imagen utilizada por el chart se trata como un componente de terceros sujeto a revisión de vulnerabilidades. La configuración evita exposición pública directa y limita el uso de Pushgateway a la recepción de métricas agregadas del pipeline.
+La imagen utilizada por el chart se trata como un componente de terceros sujeto a revisión de vulnerabilidades. La configuración evita exposición pública directa y limita el uso de Pushgateway a la recepción de métricas del pipeline.
 
 En esta configuración, `monitoring/pushgateway-values.yaml` usa:
 
@@ -258,6 +258,14 @@ Consultar una métrica del pipeline:
 securekubeops_pipeline_execution_total
 ```
 
+Consultar hallazgos de seguridad enviados desde los artifacts:
+
+```promql
+securekubeops_security_finding_info
+```
+
+Prometheus no recibe directamente el archivo `.prom`. El archivo se envía a Pushgateway y Prometheus lo obtiene al scrapear el Service de Pushgateway mediante `monitoring/pushgateway-servicemonitor.yaml`.
+
 ## Visualización en Grafana
 
 Acceder a Grafana:
@@ -291,18 +299,28 @@ El orden operativo para validar la integración es:
 
 ## Límites de la integración
 
-Pushgateway almacena el último valor recibido para cada combinación de job y labels hasta que se elimina o sobrescribe. Por este motivo, las métricas enviadas se mantienen agregadas y con baja cardinalidad.
+Pushgateway almacena el último valor recibido para cada combinación de job y labels hasta que se elimina o sobrescribe.
 
 No se envían:
 
 - commits como labels;
 - `run_id` como label;
-- CVE;
 - paquetes;
 - rutas de ficheros;
-- reglas de Semgrep;
 - secretos;
 - mensajes de error.
+
+Sí se envían como labels de hallazgos de seguridad:
+
+- `id`, como CVE, ID de Trivy config o `check_id` de Semgrep;
+- `severity`;
+- `title`;
+- `description`;
+- `time`, como fecha declarada de generación de la métrica.
+
+En GitLeaks solo se envía el número de secretos detectados. No se envía el valor del secreto ni su ubicación.
+
+Cuando varios findings de Semgrep o Trivy comparten los mismos labels, el valor de la muestra representa el número de ocurrencias para evitar métricas duplicadas con el mismo nombre y la misma combinación de labels.
 
 El detalle técnico completo permanece en los artifacts de GitHub Actions.
 

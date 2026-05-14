@@ -170,7 +170,7 @@ La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El n
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
-Las métricas agregadas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación:
+Las métricas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación:
 
 ```bash
 helm upgrade --install pushgateway prometheus-community/prometheus-pushgateway --namespace monitoring --version 3.6.0 -f monitoring/pushgateway-values.yaml
@@ -243,7 +243,7 @@ La documentación técnica del repositorio se organiza en los siguientes documen
 | `docs/criterios-parada-pipeline.md` | Criterios de validación y parada de los controles del pipeline. |
 | `docs/pipeline-evidence.md` | Estructura de artifacts, evidencias, métricas y reportes generados por los workflows. |
 | `docs/pipeline-validation.md` | Validación real del pipeline a partir de artifacts generados por GitHub Actions. |
-| `docs/pipeline-dashboard.md` | Diseño del dashboard de Grafana para visualizar métricas agregadas del pipeline. |
+| `docs/pipeline-dashboard.md` | Diseño del dashboard de Grafana para visualizar métricas del pipeline. |
 | `docs/pipeline-metrics-integration.md` | Integración de métricas del pipeline mediante Pushgateway, Prometheus y Grafana. |
 | `docs/cluster-portability.md` | Puesta en marcha completa de SecureKubeOps en otro clúster Kubernetes. |
 | `docs/minikube-deployment.md` | Despliegue local de la API de referencia en Minikube. |

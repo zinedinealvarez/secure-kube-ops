@@ -26,14 +26,19 @@ jobs:
         id: gitleaks
         continue-on-error: true
         if: github.actor != 'dependabot[bot]'
-        uses: gitleaks/gitleaks-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false
+          WORKSPACE: ${{ github.workspace }}
+        run: docker run --rm -v "$WORKSPACE:/repo" ghcr.io/gitleaks/gitleaks:v8.24.2 git /repo --config /repo/.gitleaks.toml --report-format json --report-path /repo/reports/tools/gitleaks.json --redact --exit-code 1 --no-banner
 
       - name: Record GitLeaks evidence
         if: always()
         run: |
+          if [ -f reports/tools/gitleaks.json ]; then
+            GITLEAKS_FINDINGS=$(node -e "const fs=require('fs'); const p='reports/tools/gitleaks.json'; const data=JSON.parse(fs.readFileSync(p,'utf8') || '[]'); console.log(Array.isArray(data) ? data.length : 0);")
+          else
+            GITLEAKS_FINDINGS=0
+          fi
+
           cat > reports/tools/gitleaks-summary.json <<EOF
           {
             "tool": "GitLeaks",
@@ -42,6 +47,7 @@ jobs:
             "commit": "${{ github.sha }}",
             "actor": "${{ github.actor }}",
             "outcome": "${{ steps.gitleaks.outcome }}",
+            "findings": ${GITLEAKS_FINDINGS},
             "skipped_for_dependabot": "${{ github.actor == 'dependabot[bot]' }}"
           }
           EOF
@@ -50,7 +56,9 @@ jobs:
         id: semgrep_sast
         if: always()
         continue-on-error: true
-        run: docker run --rm -v "${{ github.workspace }}:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/tools/semgrep.json
+        env:
+          WORKSPACE: ${{ github.workspace }}
+        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/tools/semgrep.json
 
       - name: Informational Trivy Kubernetes config scan
         id: trivy_config_scan
@@ -112,6 +120,7 @@ jobs:
       - name: Generate Pre Analysis pipeline metrics
         if: always()
         run: |
+          METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
           if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || [ "${{ steps.trivy_config_scan.outcome }}" = "failure" ]; then
             PIPELINE_RESULT="failure"
@@ -120,51 +129,107 @@ jobs:
           cat > reports/metrics.prom <<EOF
           # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
           # TYPE securekubeops_pipeline_execution_total counter
-          securekubeops_pipeline_execution_total{workflow="pre_analysis",event="push",branch_type="pre",result="${PIPELINE_RESULT}"} 1
+          securekubeops_pipeline_execution_total{workflow="pre_analysis",event="push",branch_type="pre",result="${PIPELINE_RESULT}",time="${METRIC_TIME}"} 1
           # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
           # TYPE securekubeops_pipeline_control_total counter
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="gitleaks",category="secret_detection",result="${{ steps.gitleaks.outcome }}"} 1
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="semgrep_sast",category="sast",result="${{ steps.semgrep_sast.outcome }}"} 1
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_scan.outcome }}"} 1
-          # HELP securekubeops_security_findings Security findings grouped by tool, scan type and severity.
-          # TYPE securekubeops_security_findings gauge
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="gitleaks",category="secret_detection",result="${{ steps.gitleaks.outcome }}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="semgrep_sast",category="sast",result="${{ steps.semgrep_sast.outcome }}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_scan.outcome }}",time="${METRIC_TIME}"} 1
+          # HELP securekubeops_security_finding_info Security findings exported with scanner metadata for Grafana tables.
+          # TYPE securekubeops_security_finding_info gauge
           EOF
 
+          METRIC_TIME="${METRIC_TIME}" \
           node <<'NODE'
           const fs = require('fs');
           const output = 'reports/metrics.prom';
-          const severities = ['UNKNOWN', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
-          const semgrepSeverities = ['INFO', 'WARNING', 'ERROR'];
+          const metricTime = process.env.METRIC_TIME;
+          const samples = new Map();
 
           function append(line) {
             fs.appendFileSync(output, `${line}\n`);
           }
 
-          function readJson(path) {
-            if (!fs.existsSync(path)) return null;
-            return JSON.parse(fs.readFileSync(path, 'utf8'));
+          function escapeLabel(value) {
+            return String(value ?? '')
+              .replace(/\\/g, '\\\\')
+              .replace(/\n/g, ' ')
+              .replace(/\r/g, ' ')
+              .replace(/"/g, '\\"')
+              .trim();
           }
 
+          function first(value) {
+            return Array.isArray(value) ? value[0] : value;
+          }
+
+          function metric(labels, value = 1) {
+            const body = Object.entries(labels)
+              .map(([key, val]) => `${key}="${escapeLabel(val)}"`)
+              .join(',');
+            const key = `securekubeops_security_finding_info{${body}}`;
+            samples.set(key, (samples.get(key) || 0) + value);
+          }
+
+          function readJson(path) {
+            if (!fs.existsSync(path)) return null;
+            const raw = fs.readFileSync(path, 'utf8').trim();
+            if (!raw) return null;
+            return JSON.parse(raw);
+          }
+
+          const gitleaks = readJson('reports/tools/gitleaks.json');
+          const gitleaksCount = Array.isArray(gitleaks) ? gitleaks.length : 0;
+          metric({
+            workflow: 'pre_analysis',
+            tool: 'gitleaks',
+            scan_type: 'secret_detection',
+            id: 'gitleaks-secrets-detected',
+            severity: 'CRITICAL',
+            title: 'Secrets detected',
+            description: 'Number of potential secrets detected by GitLeaks without exposing matched values.',
+            time: metricTime,
+          }, gitleaksCount);
+
           const trivyConfig = readJson('reports/tools/trivy-config.json');
-          const trivyCounts = Object.fromEntries(severities.map((severity) => [severity, 0]));
           for (const result of trivyConfig?.Results || []) {
             for (const item of result.Misconfigurations || []) {
-              const severity = String(item.Severity || 'UNKNOWN').toUpperCase();
-              if (severity in trivyCounts) trivyCounts[severity] += 1;
+              metric({
+                workflow: 'pre_analysis',
+                tool: 'trivy',
+                scan_type: 'config',
+                id: item.ID || item.AVDID || item.MisconfID || 'unknown',
+                severity: String(item.Severity || 'UNKNOWN').toUpperCase(),
+                title: item.Title || item.Message || item.ID || 'Kubernetes misconfiguration',
+                description: item.Description || item.Message || 'Kubernetes configuration finding detected by Trivy.',
+                time: metricTime,
+              });
             }
-          }
-          for (const severity of severities) {
-            append(`securekubeops_security_findings{workflow="pre_analysis",tool="trivy",scan_type="config",severity="${severity}"} ${trivyCounts[severity]}`);
           }
 
           const semgrep = readJson('reports/tools/semgrep.json');
-          const semgrepCounts = Object.fromEntries(semgrepSeverities.map((severity) => [severity, 0]));
           for (const finding of semgrep?.results || []) {
-            const severity = String(finding.extra?.severity || 'INFO').toUpperCase();
-            if (severity in semgrepCounts) semgrepCounts[severity] += 1;
+            const metadata = finding.extra?.metadata || {};
+            const vulnerabilityClass = first(metadata.vulnerability_class);
+            metric({
+              workflow: 'pre_analysis',
+              tool: 'semgrep',
+              scan_type: 'sast',
+              id: finding.check_id || 'unknown',
+              severity: String(finding.extra?.severity || 'INFO').toUpperCase(),
+              title: vulnerabilityClass || metadata.category || finding.check_id || 'SAST finding',
+              description: finding.extra?.message || 'Static analysis finding detected by Semgrep.',
+              cwe: first(metadata.cwe) || '',
+              owasp: first(metadata.owasp) || '',
+              confidence: metadata.confidence || '',
+              impact: metadata.impact || '',
+              likelihood: metadata.likelihood || '',
+              time: metricTime,
+            });
           }
-          for (const severity of semgrepSeverities) {
-            append(`securekubeops_security_findings{workflow="pre_analysis",tool="semgrep",scan_type="sast",severity="${severity}"} ${semgrepCounts[severity]}`);
+
+          for (const [sample, value] of samples) {
+            append(`${sample} ${value}`);
           }
           NODE
 

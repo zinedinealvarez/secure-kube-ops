@@ -38,7 +38,7 @@ La configuración inicial habilita:
 - Prometheus Operator;
 - kube-state-metrics;
 - node-exporter;
-- Pushgateway para recibir métricas agregadas del pipeline DevSecOps.
+- Pushgateway para recibir métricas del pipeline DevSecOps.
 
 Alertmanager queda deshabilitado para mantener el alcance simple, ya que no se definen alertas personalizadas.
 
@@ -175,7 +175,7 @@ Las métricas iniciales se centran en Kubernetes:
 - disponibilidad de réplicas;
 - métricas del nodo Minikube;
 - estado general del clúster;
-- métricas agregadas del pipeline DevSecOps enviadas manualmente a Pushgateway durante la validación.
+- métricas del pipeline DevSecOps enviadas manualmente a Pushgateway durante la validación.
 
 ## Encaje con SecureKubeOps
 
