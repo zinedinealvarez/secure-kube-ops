@@ -160,9 +160,9 @@ El orden recomendado para instalar y comprobar la observabilidad es:
 1. Instalar `kube-prometheus-stack` siguiendo `docs/observability.md`.
 2. Instalar Pushgateway con `monitoring/pushgateway-values.yaml`.
 3. Aplicar `monitoring/pushgateway-servicemonitor.yaml`.
-4. Enviar una métrica de prueba siguiendo `docs/pipeline-metrics-integration.md`.
+4. Enviar una métrica de prueba o un archivo `metrics.prom` siguiendo `docs/pipeline-metrics-integration.md`.
 5. Consultar la métrica en Prometheus.
-6. Usar `docs/pipeline-dashboard.md` como diseño de paneles para Grafana.
+6. Crear el dashboard de Grafana usando `docs/pipeline-dashboard.md` como diseño de paneles.
 
 La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El namespace se entrega como manifiesto en `monitoring/namespace.yaml` y la contraseña de Grafana se configura mediante un Secret de Kubernetes que queda fuera del repositorio:
 
@@ -170,7 +170,9 @@ La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El n
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
-Las métricas agregadas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación:
+`monitoring/values.yaml` activa persistencia para Prometheus y Grafana. Prometheus solicita `5Gi` y conserva métricas durante `7d`; Grafana solicita `1Gi` para conservar su estado local entre reinicios del Pod.
+
+Las métricas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación usando un `job` estable por workflow, por ejemplo `securekubeops-pre-analysis`, `securekubeops-image-validation`, `securekubeops-branch-policy` o `securekubeops-publish-image`:
 
 ```bash
 helm upgrade --install pushgateway prometheus-community/prometheus-pushgateway --namespace monitoring --version 3.6.0 -f monitoring/pushgateway-values.yaml
@@ -196,7 +198,7 @@ El escaneo no bloquea el pipeline; se utiliza para obtener visibilidad sobre la 
 
 ## Detección de secretos con GitLeaks
 
-El workflow **Pre Analysis** incorpora GitLeaks como control de detección de secretos. Este paso analiza el repositorio para identificar posibles credenciales, tokens o claves expuestas en el código o en el historial.
+El workflow **Pre Analysis** incorpora GitLeaks como control de detección de secretos. Este paso analiza el estado actual del repositorio para identificar posibles credenciales, tokens o claves expuestas en el código versionado.
 
 GitLeaks mantiene sus reglas por defecto mediante la configuración incluida en `.gitleaks.toml`. Además, se añade una regla controlada para detectar `TFG_FAKE_SECRET`, utilizada únicamente para validar el caso negativo del TFG y comprobar que el pipeline falla cuando aparece un patrón definido como secreto.
 
@@ -243,7 +245,7 @@ La documentación técnica del repositorio se organiza en los siguientes documen
 | `docs/criterios-parada-pipeline.md` | Criterios de validación y parada de los controles del pipeline. |
 | `docs/pipeline-evidence.md` | Estructura de artifacts, evidencias, métricas y reportes generados por los workflows. |
 | `docs/pipeline-validation.md` | Validación real del pipeline a partir de artifacts generados por GitHub Actions. |
-| `docs/pipeline-dashboard.md` | Diseño del dashboard de Grafana para visualizar métricas agregadas del pipeline. |
+| `docs/pipeline-dashboard.md` | Diseño del dashboard de Grafana para visualizar métricas del pipeline. |
 | `docs/pipeline-metrics-integration.md` | Integración de métricas del pipeline mediante Pushgateway, Prometheus y Grafana. |
 | `docs/cluster-portability.md` | Puesta en marcha completa de SecureKubeOps en otro clúster Kubernetes. |
 | `docs/minikube-deployment.md` | Despliegue local de la API de referencia en Minikube. |

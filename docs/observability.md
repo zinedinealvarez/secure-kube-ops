@@ -38,7 +38,9 @@ La configuración inicial habilita:
 - Prometheus Operator;
 - kube-state-metrics;
 - node-exporter;
-- Pushgateway para recibir métricas agregadas del pipeline DevSecOps.
+- Pushgateway para recibir métricas del pipeline DevSecOps.
+
+Prometheus y Grafana usan persistencia mediante PersistentVolumeClaims. Prometheus conserva las series temporales durante `7d` y solicita `5Gi` de almacenamiento. Grafana solicita `1Gi` para conservar su estado local, incluida la configuración creada desde la interfaz.
 
 Alertmanager queda deshabilitado para mantener el alcance simple, ya que no se definen alertas personalizadas.
 
@@ -83,6 +85,8 @@ Instalar `kube-prometheus-stack` fijando la versión del chart:
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
+Este comando también aplica la configuración de persistencia definida en `monitoring/values.yaml`.
+
 Instalar Pushgateway fijando la versión del chart:
 
 ```bash
@@ -101,10 +105,10 @@ El orden de validación es:
 
 1. Comprobar Pods, Services y ServiceMonitor en el namespace `monitoring`.
 2. Abrir Pushgateway mediante `kubectl port-forward`.
-3. Enviar una métrica de prueba según `docs/pipeline-metrics-integration.md`.
+3. Enviar una métrica de prueba o un archivo `metrics.prom` según `docs/pipeline-metrics-integration.md`.
 4. Abrir Prometheus mediante `kubectl port-forward`.
-5. Consultar la métrica de prueba en Prometheus.
-6. Abrir Grafana y usar `docs/pipeline-dashboard.md` como guía de paneles.
+5. Consultar la métrica en Prometheus.
+6. Abrir Grafana y crear el dashboard usando `docs/pipeline-dashboard.md` como guía de paneles.
 
 ## Comprobación de recursos
 
@@ -118,6 +122,12 @@ Comprobar los Services:
 
 ```bash
 kubectl get svc -n monitoring
+```
+
+Comprobar los PersistentVolumeClaims:
+
+```bash
+kubectl get pvc -n monitoring
 ```
 
 Comprobar el ServiceMonitor de Pushgateway:
@@ -175,7 +185,7 @@ Las métricas iniciales se centran en Kubernetes:
 - disponibilidad de réplicas;
 - métricas del nodo Minikube;
 - estado general del clúster;
-- métricas agregadas del pipeline DevSecOps enviadas manualmente a Pushgateway durante la validación.
+- métricas del pipeline DevSecOps enviadas manualmente a Pushgateway durante la validación.
 
 ## Encaje con SecureKubeOps
 
@@ -192,10 +202,11 @@ Como evidencias técnicas pueden utilizarse:
 - `monitoring/pushgateway-servicemonitor.yaml`;
 - salida de `kubectl get pods -n monitoring`;
 - salida de `kubectl get svc -n monitoring`;
+- salida de `kubectl get pvc -n monitoring`;
 - salida de `kubectl get servicemonitor -n monitoring pushgateway`;
 - acceso a Grafana mediante `port-forward`;
 - acceso a Prometheus mediante `port-forward`;
-- consulta de métricas `securekubeops_*` en Prometheus tras enviar manualmente un `metrics.prom` a Pushgateway;
+- consulta de métricas `securekubeops_*` en Prometheus tras enviar manualmente un `metrics.prom` a Pushgateway con un `job` estable por workflow;
 - visualización del Pod o Deployment de SecureKubeOps desde dashboards de Kubernetes.
 
 No se requieren capturas dentro del repositorio.

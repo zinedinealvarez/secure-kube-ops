@@ -79,9 +79,21 @@ Configuración YAML esperada:
 ```yaml
 - name: Detect secrets with GitLeaks
   if: github.actor != 'dependabot[bot]'
-  uses: gitleaks/gitleaks-action@v2
   env:
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    WORKSPACE: ${{ github.workspace }}
+  run: |
+    mkdir -p reports/gitleaks-source
+    rsync -a --exclude='.git' --exclude='reports' ./ reports/gitleaks-source/
+    docker run --rm \
+      -v "$WORKSPACE/reports/gitleaks-source:/repo:ro" \
+      -v "$WORKSPACE/reports/tools:/reports" \
+      ghcr.io/gitleaks/gitleaks:v8.24.2 dir /repo \
+      --config /repo/.gitleaks.toml \
+      --report-format json \
+      --report-path /reports/gitleaks.json \
+      --redact \
+      --exit-code 1 \
+      --no-banner
 ```
 
 ### Semgrep SAST

@@ -1,6 +1,6 @@
 # Integración de métricas del pipeline
 
-Este documento describe cómo SecureKubeOps integra las métricas agregadas del pipeline DevSecOps con la capa de observabilidad en Kubernetes.
+Este documento describe cómo SecureKubeOps integra las métricas del pipeline DevSecOps con la capa de observabilidad en Kubernetes.
 
 El flujo de integración queda definido así:
 
@@ -22,7 +22,7 @@ Pushgateway resuelve este caso actuando como intermediario:
 4. Prometheus scrapea Pushgateway mediante el `ServiceMonitor`.
 5. Grafana consulta Prometheus usando PromQL.
 
-El detalle técnico de cada ejecución sigue estando en los artifacts. Pushgateway solo recibe métricas agregadas y de baja cardinalidad para construir paneles.
+El detalle técnico completo de cada ejecución sigue estando en los artifacts. Pushgateway recibe métricas orientadas a Grafana: estado de workflows, resultado de controles y hallazgos de seguridad enriquecidos sin exponer secretos.
 
 ## Enfoque de seguridad
 
@@ -37,7 +37,7 @@ Pushgateway se despliega como servicio interno de Kubernetes:
 
 GitHub Actions no envía métricas automáticamente a Pushgateway porque Pushgateway se mantiene como servicio interno del clúster. En Minikube, la validación local se realiza mediante `kubectl port-forward`.
 
-La imagen utilizada por el chart se trata como un componente de terceros sujeto a revisión de vulnerabilidades. La configuración evita exposición pública directa y limita el uso de Pushgateway a la recepción de métricas agregadas del pipeline.
+La imagen utilizada por el chart se trata como un componente de terceros sujeto a revisión de vulnerabilidades. La configuración evita exposición pública directa y limita el uso de Pushgateway a la recepción de métricas del pipeline.
 
 En esta configuración, `monitoring/pushgateway-values.yaml` usa:
 
@@ -170,6 +170,17 @@ La métrica aparece cuando Prometheus ha scrapeado Pushgateway. Si no aparece in
 
 Cada workflow genera `reports/metrics.prom` dentro de su artifact. El envío a Pushgateway es manual durante la validación.
 
+El archivo que se envía es siempre `metrics.prom`. La URL de Pushgateway incluye un `job` estable para identificar el origen lógico de las métricas. Ese nombre no es una carpeta ni el nombre del repositorio; Pushgateway lo convierte en el label `job`.
+
+| Workflow | Artifact | Job recomendado en Pushgateway |
+| --- | --- | --- |
+| `Pre Analysis` | `securekubeops-pre-analysis-security-results-*` | `securekubeops-pre-analysis` |
+| `Image Validation` | `securekubeops-image-validation-security-results-*` | `securekubeops-image-validation` |
+| `Branch Policy` | `securekubeops-branch-policy-results-*` | `securekubeops-branch-policy` |
+| `Publish Image` | `securekubeops-ghcr-publish-results-*` | `securekubeops-publish-image` |
+
+El nombre del `job` se mantiene estable y descriptivo. No se usan como parte del `job` valores variables como commit, `run_id`, fecha o nombre exacto del ZIP.
+
 Procedimiento:
 
 1. Descargar desde GitHub Actions el artifact del workflow que se quiere validar.
@@ -190,21 +201,27 @@ artifact-extraido/
   tools/
 ```
 
-El archivo que se envía a Pushgateway es `metrics.prom`, no el ZIP completo. Para que el comando con `-InFile "metrics.prom"` funcione, la terminal de PowerShell se abre en la carpeta extraída que contiene ese archivo.
+El archivo que se envía a Pushgateway es `metrics.prom`, no el ZIP completo. Si el archivo ya está fuera del ZIP en `C:\Users\Usuario\Downloads`, se usa directamente esa ruta.
 
-Ejemplo:
-
-```powershell
-Set-Location "C:\Users\Usuario\Downloads\artifact-extraido"
-```
-
-Si la terminal se mantiene en otra carpeta, se usa una ruta absoluta al archivo:
+Definir la ruta del `.prom`:
 
 ```powershell
-$env:METRICS_PROM_PATH="C:\Users\Usuario\Downloads\artifact-extraido\metrics.prom"
+$prom = "C:\Users\Usuario\Downloads\metrics.prom"
 ```
 
-Abrir Pushgateway localmente:
+Comprobar que el archivo existe:
+
+```powershell
+Test-Path $prom
+```
+
+Ver el contenido antes de enviarlo:
+
+```powershell
+Get-Content $prom
+```
+
+Abrir Pushgateway localmente en una terminal y dejarla abierta:
 
 ```powershell
 kubectl port-forward -n monitoring svc/pushgateway 9091:9091
@@ -212,19 +229,31 @@ kubectl port-forward -n monitoring svc/pushgateway 9091:9091
 
 La terminal del `port-forward` permanece abierta porque `kubectl port-forward` mantiene activa la conexión local con el Service de Kubernetes. El envío de métricas se ejecuta desde otra terminal.
 
-Enviar el archivo desde la carpeta donde está `metrics.prom`:
+Enviar un `metrics.prom` de `Pre Analysis`:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-manual-validation" -Method Post -InFile "metrics.prom" -ContentType "text/plain"
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-pre-analysis" -Method Post -InFile $prom -ContentType "text/plain"
 ```
 
-Enviar el archivo usando ruta absoluta:
+Enviar un `metrics.prom` de `Image Validation`:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-manual-validation" -Method Post -InFile $env:METRICS_PROM_PATH -ContentType "text/plain"
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-image-validation" -Method Post -InFile $prom -ContentType "text/plain"
 ```
 
-Este envío se hace durante la validación local, con Pushgateway expuesto únicamente mediante `kubectl port-forward`.
+Enviar un `metrics.prom` de `Branch Policy`:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-branch-policy" -Method Post -InFile $prom -ContentType "text/plain"
+```
+
+Enviar un `metrics.prom` de `Publish Image`:
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-publish-image" -Method Post -InFile $prom -ContentType "text/plain"
+```
+
+Este envío se hace durante la validación local, con Pushgateway expuesto únicamente mediante `kubectl port-forward`. El `job` elegido identifica el workflow al que pertenece el archivo enviado.
 
 Comprobar que Pushgateway contiene métricas de SecureKubeOps:
 
@@ -232,10 +261,22 @@ Comprobar que Pushgateway contiene métricas de SecureKubeOps:
 (Invoke-WebRequest -UseBasicParsing -Uri http://localhost:9091/metrics).Content | Select-String "securekubeops_"
 ```
 
-Eliminar las métricas de esa validación manual:
+Eliminar las métricas enviadas para un workflow concreto:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing -Uri http://localhost:9091/metrics/job/securekubeops-manual-validation -Method Delete
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-pre-analysis" -Method Delete
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-image-validation" -Method Delete
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-branch-policy" -Method Delete
+```
+
+```powershell
+Invoke-WebRequest -UseBasicParsing -Uri "http://localhost:9091/metrics/job/securekubeops-publish-image" -Method Delete
 ```
 
 ## Consulta desde Prometheus
@@ -258,6 +299,20 @@ Consultar una métrica del pipeline:
 securekubeops_pipeline_execution_total
 ```
 
+Consultar las métricas enviadas desde un workflow concreto:
+
+```promql
+securekubeops_pipeline_execution_total{job="securekubeops-pre-analysis"}
+```
+
+Consultar hallazgos de seguridad enviados desde los artifacts:
+
+```promql
+securekubeops_security_finding_info
+```
+
+Prometheus no recibe directamente el archivo `.prom`. El archivo se envía a Pushgateway y Prometheus lo obtiene al scrapear el Service de Pushgateway mediante `monitoring/pushgateway-servicemonitor.yaml`.
+
 ## Visualización en Grafana
 
 Acceder a Grafana:
@@ -273,6 +328,8 @@ http://localhost:3000
 ```
 
 Los paneles definidos en `docs/pipeline-dashboard.md` utilizan las métricas recibidas por Pushgateway y almacenadas por Prometheus.
+
+El dashboard de Grafana se crea siguiendo las consultas y paneles definidos en `docs/pipeline-dashboard.md`. La comprobación consiste en confirmar que las consultas PromQL devuelven datos en Prometheus y después usar esas mismas consultas en los paneles de Grafana.
 
 ## Orden completo de comprobación
 
@@ -291,18 +348,28 @@ El orden operativo para validar la integración es:
 
 ## Límites de la integración
 
-Pushgateway almacena el último valor recibido para cada combinación de job y labels hasta que se elimina o sobrescribe. Por este motivo, las métricas enviadas se mantienen agregadas y con baja cardinalidad.
+Pushgateway almacena el último valor recibido para cada combinación de job y labels hasta que se elimina o sobrescribe.
 
 No se envían:
 
 - commits como labels;
 - `run_id` como label;
-- CVE;
 - paquetes;
 - rutas de ficheros;
-- reglas de Semgrep;
 - secretos;
 - mensajes de error.
+
+Sí se envían como labels de hallazgos de seguridad:
+
+- `id`, como CVE, ID de Trivy config o `check_id` de Semgrep;
+- `severity`;
+- `title`;
+- `description`;
+- `time`, como fecha declarada de generación de la métrica.
+
+En GitLeaks solo se envía el número de secretos detectados. No se envía el valor del secreto ni su ubicación.
+
+Cuando varios findings de Semgrep o Trivy comparten los mismos labels, el valor de la muestra representa el número de ocurrencias para evitar métricas duplicadas con el mismo nombre y la misma combinación de labels.
 
 El detalle técnico completo permanece en los artifacts de GitHub Actions.
 
@@ -314,3 +381,6 @@ El detalle técnico completo permanece en los artifacts de GitHub Actions.
 - `docs/pipeline-dashboard.md` define las consultas PromQL y los paneles de Grafana.
 - `monitoring/pushgateway-values.yaml` contiene la configuración Helm usada para desplegar Pushgateway.
 - `monitoring/pushgateway-servicemonitor.yaml` contiene el `ServiceMonitor` que conecta Pushgateway con Prometheus.
+- Prometheus Pushgateway documenta el envío mediante HTTP usando rutas con `/metrics/job/<JOB_NAME>`.
+- Prometheus documenta PromQL como lenguaje para seleccionar y agregar series temporales.
+- Prometheus documenta Grafana como herramienta recomendada para crear gráficas y dashboards sobre métricas Prometheus.

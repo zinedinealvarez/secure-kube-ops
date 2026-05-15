@@ -7,9 +7,20 @@ grafana:
     existingSecret: monitoring-grafana-admin
     userKey: admin-user
     passwordKey: admin-password
+  persistence:
+    enabled: true
+    size: 1Gi
 
 prometheus:
   enabled: true
+  prometheusSpec:
+    retention: 7d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          resources:
+            requests:
+              storage: 5Gi
 
 prometheusOperator:
   enabled: true
