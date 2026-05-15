@@ -30,6 +30,7 @@ Permisos necesarios:
 | Crear recursos Kubernetes | Aplicar `Deployment`, `Service`, namespace y `ServiceMonitor`. |
 | Instalar charts Helm | Instalar Prometheus, Grafana y Pushgateway. |
 | Usar `kubectl port-forward` | Validar servicios internos sin exponerlos públicamente. |
+| Crear PersistentVolumeClaims | Conservar métricas de Prometheus y estado local de Grafana entre reinicios. |
 
 ## Variables locales
 
@@ -177,6 +178,8 @@ Instalar o actualizar `kube-prometheus-stack`:
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
+La configuración de `monitoring/values.yaml` solicita almacenamiento persistente para Prometheus y Grafana. El clúster de destino necesita una StorageClass por defecto o una StorageClass compatible con aprovisionamiento dinámico.
+
 Instalar o actualizar Pushgateway:
 
 ```powershell
@@ -201,6 +204,12 @@ Comprobar Services:
 
 ```powershell
 kubectl get svc -n monitoring
+```
+
+Comprobar PersistentVolumeClaims:
+
+```powershell
+kubectl get pvc -n monitoring
 ```
 
 Comprobar el `ServiceMonitor` de Pushgateway:
@@ -370,7 +379,7 @@ Los paneles se construyen a partir de las consultas documentadas en `docs/pipeli
 | --- | --- |
 | Registry privado | El Secret `ghcr-pull-secret` se crea en el namespace donde se despliega la API. |
 | Tag de imagen | El tag `<commit-sha>` se actualiza con el SHA publicado por el pipeline en GHCR. |
-| Storage | Si el clúster requiere persistencia para Prometheus o Grafana, se ajustan los valores del chart. |
+| Storage | Prometheus solicita `5Gi` y Grafana solicita `1Gi`. Si el clúster no tiene StorageClass por defecto, se define una StorageClass válida en los valores del chart. |
 | Recursos | En clústeres limitados se revisan requests y limits de los componentes de observabilidad. |
 | Red | Pushgateway, Prometheus y Grafana permanecen internos. Si se exponen, se añaden TLS, autenticación y restricciones de red. |
 | Secretos | Las credenciales reales se crean en el clúster y no se guardan en el repositorio. |
@@ -388,6 +397,7 @@ Las evidencias de portabilidad quedan formadas por:
 - salida de `kubectl get svc`;
 - salida de `kubectl get pods -n monitoring`;
 - salida de `kubectl get svc -n monitoring`;
+- salida de `kubectl get pvc -n monitoring`;
 - salida de `kubectl get servicemonitor -n monitoring pushgateway`;
 - comprobación de `/health` mediante `port-forward`;
 - comprobación de una métrica `securekubeops_*` en Pushgateway;

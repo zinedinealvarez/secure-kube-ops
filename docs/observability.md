@@ -40,6 +40,8 @@ La configuración inicial habilita:
 - node-exporter;
 - Pushgateway para recibir métricas del pipeline DevSecOps.
 
+Prometheus y Grafana usan persistencia mediante PersistentVolumeClaims. Prometheus conserva las series temporales durante `7d` y solicita `5Gi` de almacenamiento. Grafana solicita `1Gi` para conservar su estado local, incluida la configuración creada desde la interfaz.
+
 Alertmanager queda deshabilitado para mantener el alcance simple, ya que no se definen alertas personalizadas.
 
 ## Instalación
@@ -83,6 +85,8 @@ Instalar `kube-prometheus-stack` fijando la versión del chart:
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
+Este comando también aplica la configuración de persistencia definida en `monitoring/values.yaml`.
+
 Instalar Pushgateway fijando la versión del chart:
 
 ```bash
@@ -118,6 +122,12 @@ Comprobar los Services:
 
 ```bash
 kubectl get svc -n monitoring
+```
+
+Comprobar los PersistentVolumeClaims:
+
+```bash
+kubectl get pvc -n monitoring
 ```
 
 Comprobar el ServiceMonitor de Pushgateway:
@@ -192,6 +202,7 @@ Como evidencias técnicas pueden utilizarse:
 - `monitoring/pushgateway-servicemonitor.yaml`;
 - salida de `kubectl get pods -n monitoring`;
 - salida de `kubectl get svc -n monitoring`;
+- salida de `kubectl get pvc -n monitoring`;
 - salida de `kubectl get servicemonitor -n monitoring pushgateway`;
 - acceso a Grafana mediante `port-forward`;
 - acceso a Prometheus mediante `port-forward`;

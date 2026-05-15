@@ -170,6 +170,8 @@ La instalación se realiza con Helm fijando la versión `84.5.0` del chart. El n
 helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --namespace monitoring --version 84.5.0 -f monitoring/values.yaml
 ```
 
+`monitoring/values.yaml` activa persistencia para Prometheus y Grafana. Prometheus solicita `5Gi` y conserva métricas durante `7d`; Grafana solicita `1Gi` para conservar su estado local entre reinicios del Pod.
+
 Las métricas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación usando un `job` estable por workflow, por ejemplo `securekubeops-pre-analysis`, `securekubeops-image-validation`, `securekubeops-branch-policy` o `securekubeops-publish-image`:
 
 ```bash
