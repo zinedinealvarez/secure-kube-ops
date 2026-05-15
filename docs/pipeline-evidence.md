@@ -51,6 +51,7 @@ El resumen en Markdown se muestra directamente en GitHub Actions mediante `GITHU
 
 ```text
 reports/tools/gitleaks-summary.json
+reports/tools/gitleaks.json
 reports/tools/semgrep.json
 reports/tools/trivy-config.json
 reports/tools/trivy-image.json
@@ -58,7 +59,7 @@ reports/tools/trivy-image.json
 
 Esta estructura facilita comparar ejecuciones, localizar evidencias concretas y justificar los controles aplicados en el TFG.
 
-El artifact SARIF automático de GitLeaks queda desactivado mediante `GITLEAKS_ENABLE_UPLOAD_ARTIFACT: false`. La evidencia de GitLeaks se conserva dentro del artifact normalizado de SecureKubeOps.
+La evidencia de GitLeaks se conserva dentro del artifact normalizado de SecureKubeOps mediante un reporte JSON redactado y un resumen sin valores de secretos.
 
 ### Trazabilidad en caso de fallo
 
@@ -107,7 +108,7 @@ reports/metrics.prom
 
 Estas métricas se conservan como artifact de la ejecución y mantienen un formato compatible con Prometheus text format. Su estructura permite construir paneles agregados en Grafana a partir de los resultados de los pipelines.
 
-Las métricas están orientadas a paneles agregados, no a duplicar el contenido detallado de los artifacts. Por ese motivo no usan como labels valores de alta cardinalidad o información sensible como commit, `run_id`, CVE, paquetes, ficheros, reglas, secretos o mensajes de error.
+Las métricas combinan estado agregado de workflows y controles con hallazgos de seguridad enriquecidos para su visualización en Grafana. Los secretos, commits, `run_id`, rutas de ficheros, líneas, paquetes y valores sensibles permanecen fuera de los labels.
 
 ### Resumen de métricas
 
@@ -115,7 +116,7 @@ Las métricas están orientadas a paneles agregados, no a duplicar el contenido 
 | --- | --- | --- | --- |
 | `securekubeops_pipeline_execution_total` | `counter` | `Pre Analysis`, `Image Validation`, `Branch Policy`, `Publish Image` | Salud general del pipeline, total de ejecuciones y porcentaje de éxito/fallo. |
 | `securekubeops_pipeline_control_total` | `counter` | `Pre Analysis`, `Image Validation`, `Branch Policy`, `Publish Image` | Fallos por control, herramientas más inestables y evolución de resultados por step. |
-| `securekubeops_security_findings` | `gauge` | `Pre Analysis`, `Image Validation` | Hallazgos de seguridad por herramienta, tipo de análisis y severidad. |
+| `securekubeops_security_finding_info` | `gauge` | `Pre Analysis`, `Image Validation` | Hallazgos de seguridad enriquecidos para tablas y agregaciones en Grafana. |
 | `securekubeops_promotion_total` | `counter` | `Branch Policy`, `Publish Image` | Promoción del flujo: PRs permitidas/bloqueadas e imágenes publicadas en GHCR. |
 | `securekubeops_supply_chain_artifact` | `gauge` | `Image Validation` | Generación de evidencias de cadena de suministro, como el SBOM CycloneDX. |
 
@@ -127,14 +128,14 @@ Las métricas están orientadas a paneles agregados, no a duplicar el contenido 
 | --- | --- |
 | Finalidad | Contabiliza ejecuciones de workflows para paneles de salud general. |
 | Paneles | Total de ejecuciones, ejecuciones por workflow, porcentaje de éxito/fallo global y porcentaje de éxito/fallo por workflow. |
-| Labels | `workflow`, `event`, `branch_type`, `result` |
+| Labels | `workflow`, `event`, `branch_type`, `result`, `time` |
 | Posibles `workflow` | `pre_analysis`, `image_validation`, `branch_policy`, `publish_image` |
 | Posibles `event` | `push`, `pull_request` |
 | Posibles `branch_type` | `pre`, `main`, `pull_request` |
 | Posibles `result` | `success`, `failure` |
 | Valor | `1` por ejecución del workflow. |
 | Origen | Resultado agregado calculado a partir de los outcomes de los controles principales del workflow. |
-| Cardinalidad/privacidad | Riesgo bajo. No usa `commit`, `run_id` ni nombres de ramas arbitrarias como labels. |
+| Cardinalidad/privacidad | Riesgo bajo. No usa `commit`, `run_id` ni nombres de ramas arbitrarias como labels. El label `time` identifica la fecha declarada de generación de la métrica. |
 
 Generación por workflow:
 
@@ -151,7 +152,7 @@ Generación por workflow:
 | --- | --- |
 | Finalidad | Contabiliza el resultado de cada control ejecutado. |
 | Paneles | Controles que más fallan, fallos por categoría y evolución de estabilidad por step. |
-| Labels | `workflow`, `control`, `category`, `result` |
+| Labels | `workflow`, `control`, `category`, `result`, `time` |
 | Posibles `result` | `success`, `failure`, `skipped`, `cancelled` |
 | Valor | `1` por control ejecutado. |
 | Origen | `${{ steps.<id>.outcome }}` de cada step con identificador. |
@@ -174,21 +175,22 @@ Controles registrados:
 
 En **Publish Image**, `ghcr_login` queda con `result="skipped"` cuando no existe una imagen construida correctamente. `ghcr_push` queda con `result="skipped"` cuando no existe una imagen construida correctamente o cuando el login en GHCR no ha finalizado con éxito.
 
-#### `securekubeops_security_findings`
+#### `securekubeops_security_finding_info`
 
 | Campo | Valor |
 | --- | --- |
-| Finalidad | Registra hallazgos agregados de seguridad por herramienta, tipo y severidad. |
-| Paneles | Vulnerabilidades por severidad, findings SAST por severidad, configuración Kubernetes por severidad y evolución de `HIGH`/`CRITICAL`. |
-| Labels | `workflow`, `tool`, `scan_type`, `severity` |
-| Valor | Número de hallazgos agregados para esa combinación de labels. |
+| Finalidad | Registra hallazgos de seguridad como muestras consultables en Grafana. |
+| Paneles | Secretos detectados, vulnerabilidades por CVE, misconfigurations Kubernetes, findings SAST por CWE y tablas de detalle. |
+| Labels | `workflow`, `tool`, `scan_type`, `id`, `severity`, `title`, `description`, `time` y, para Semgrep, `cwe`, `owasp`, `confidence`, `impact`, `likelihood`. |
+| Valor | Número de ocurrencias para esa combinación de labels. Si el finding es único, el valor es `1`. En GitLeaks, el valor es el número total de secretos detectados. |
 | Origen | Informes JSON generados en `reports/tools/`. |
-| Cardinalidad/privacidad | Riesgo bajo. Solo se exportan severidades agregadas, no CVEs, paquetes, ficheros, reglas ni líneas. |
+| Cardinalidad/privacidad | Riesgo controlado para el TFG. No se exportan secretos, rutas, líneas, paquetes, commits ni `run_id`. |
 
 Generación por workflow:
 
 | Workflow | Tool | Scan type | Severidades | Origen |
 | --- | --- | --- | --- | --- |
+| `Pre Analysis` | `gitleaks` | `secret_detection` | `CRITICAL` | `reports/tools/gitleaks.json` y `reports/tools/gitleaks-summary.json` |
 | `Pre Analysis` | `trivy` | `config` | `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL` | `reports/tools/trivy-config.json` |
 | `Pre Analysis` | `semgrep` | `sast` | `INFO`, `WARNING`, `ERROR` | `reports/tools/semgrep.json` |
 | `Image Validation` | `trivy` | `image` | `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH`, `CRITICAL` | `reports/tools/trivy-image.json` |
@@ -199,7 +201,7 @@ Generación por workflow:
 | --- | --- |
 | Finalidad | Contabiliza eventos de promoción del flujo DevSecOps. |
 | Paneles | PRs permitidas o bloqueadas, publicaciones de imagen en GHCR y evolución de promoción hacia producción. |
-| Labels | `stage`, `result` |
+| Labels | `stage`, `result`, `time` |
 | Valor | `1` por evento de promoción. |
 | Cardinalidad/privacidad | Riesgo bajo. `stage` y `result` son listas cerradas. |
 
@@ -216,14 +218,14 @@ Eventos registrados:
 | --- | --- |
 | Finalidad | Indica si se ha generado una evidencia de cadena de suministro. |
 | Paneles | Porcentaje de imágenes con SBOM y ejecuciones donde el SBOM está disponible. |
-| Labels | `workflow`, `artifact_type`, `result` |
+| Labels | `workflow`, `artifact_type`, `result`, `time` |
 | Posibles `artifact_type` | `sbom_cyclonedx` |
 | Posibles `result` | `generated`, `missing` |
 | Valor | `1` cuando se registra el estado del artifact. |
 | Origen | Existencia de `reports/tools/sbom.cyclonedx.json` en `Image Validation`. |
 | Cardinalidad/privacidad | Riesgo bajo. No exporta nombres de componentes ni paquetes. |
 
-El número de componentes del SBOM no se exporta como métrica para mantener el conjunto actual centrado en evidencias agregadas y de baja cardinalidad.
+El número de componentes del SBOM no se exporta como métrica. El detalle de componentes queda en `reports/tools/sbom.cyclonedx.json`.
 
 ## Evidencias por workflow
 
@@ -247,6 +249,7 @@ Evidencias:
 reports/metadata.json
 reports/metrics.prom
 reports/pre-analysis-security-report.html
+reports/tools/gitleaks.json
 reports/tools/gitleaks-summary.json
 reports/tools/semgrep.json
 reports/tools/trivy-config.json
@@ -335,7 +338,7 @@ Para documentar una ejecución en la memoria del TFG se usa:
 - captura o referencia al summary del workflow;
 - artifact descargado de la ejecución;
 - `metadata.json` para identificar commit, workflow y resultado;
-- `metrics.prom` como preparación de visualización agregada en Prometheus/Grafana;
+- `metrics.prom` como preparación de visualización en Prometheus/Grafana;
 - informe HTML del workflow como evidencia visual descargable;
 - informes de `tools/` para justificar hallazgos de seguridad;
 - SBOM CycloneDX para evidenciar los componentes incluidos en la imagen;

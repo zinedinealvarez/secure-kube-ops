@@ -160,4 +160,4 @@ La validación confirma que el pipeline DevSecOps de SecureKubeOps ejecuta corre
 - publicación de la imagen final en GitHub Container Registry tras la actualización de `main`;
 - generación de evidencias normalizadas por workflow.
 
-Los artifacts revisados mantienen coherencia entre `metadata.json`, `metrics.prom`, los informes HTML y los informes técnicos. Las métricas agregadas reflejan los resultados de los controles y permiten preparar paneles de observabilidad del pipeline sin exponer datos sensibles ni labels de alta cardinalidad.
+Los artifacts revisados mantienen coherencia entre `metadata.json`, `metrics.prom`, los informes HTML y los informes técnicos. Las métricas reflejan los resultados de los controles y permiten preparar paneles de observabilidad del pipeline sin exponer secretos ni valores sensibles.
