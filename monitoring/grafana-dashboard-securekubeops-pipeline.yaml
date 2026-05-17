@@ -1,0 +1,2580 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: securekubeops-pipeline-dashboard
+  namespace: monitoring
+  labels:
+    grafana_dashboard: "1"
+    app.kubernetes.io/name: securekubeops-pipeline-dashboard
+    app.kubernetes.io/part-of: securekubeops
+data:
+  securekubeops-pipeline-dashboard.json: |-
+    {
+      "apiVersion": "dashboard.grafana.app/v2",
+      "kind": "Dashboard",
+      "metadata": {
+        "name": "ad2mcdm"
+      },
+      "spec": {
+        "annotations": [
+          {
+            "kind": "AnnotationQuery",
+            "spec": {
+              "query": {
+                "kind": "DataQuery",
+                "group": "grafana",
+                "version": "v0",
+                "datasource": {
+                  "name": "-- Grafana --"
+                },
+                "spec": {}
+              },
+              "enable": true,
+              "hide": true,
+              "iconColor": "rgba(0, 211, 255, 1)",
+              "name": "Annotations & Alerts",
+              "builtIn": true
+            }
+          }
+        ],
+        "cursorSync": "Off",
+        "editable": true,
+        "elements": {
+          "panel-1": {
+            "kind": "Panel",
+            "spec": {
+              "id": 1,
+              "title": "Ejecuciones totales",
+              "description": "Número total de ejecuciones de workflows registradas en las métricas de SecureKubeOps.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(securekubeops_pipeline_execution_total)",
+                            "instant": true,
+                            "legendFormat": "{{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "blue"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-10": {
+            "kind": "Panel",
+            "spec": {
+              "id": 10,
+              "title": "SAST por severidad",
+              "description": "",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (severity) (securekubeops_security_finding_info{tool=\"semgrep\", scan_type=\"sast\"})\r\n",
+                            "instant": true,
+                            "legendFormat": "Semgrep {{severity}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 1,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-11": {
+            "kind": "Panel",
+            "spec": {
+              "id": 11,
+              "title": "Vulnerabilidades de imagen",
+              "description": "",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (severity) (securekubeops_security_finding_info{tool=\"trivy\", scan_type=\"image\"})",
+                            "instant": true,
+                            "legendFormat": "Imagen {{severity}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 1,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-12": {
+            "kind": "Panel",
+            "spec": {
+              "id": 12,
+              "title": "Configuración Kubernetes",
+              "description": "",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (severity) (securekubeops_security_finding_info{tool=\"trivy\", scan_type=\"config\"})",
+                            "instant": true,
+                            "legendFormat": "K8s {{severity}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-13": {
+            "kind": "Panel",
+            "spec": {
+              "id": 13,
+              "title": "Detalle Semgrep SAST",
+              "description": "Hallazgos de análisis estático detectados por Semgrep, incluyendo severidad, regla, descripción y clasificación de riesgo.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "securekubeops_security_finding_info{tool=\"semgrep\", scan_type=\"sast\"}",
+                            "format": "table",
+                            "instant": true,
+                            "legendFormat": "__auto",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [
+                    {
+                      "kind": "Transformation",
+                      "group": "labelsToFields",
+                      "spec": {
+                        "options": {}
+                      }
+                    },
+                    {
+                      "kind": "Transformation",
+                      "group": "organize",
+                      "spec": {
+                        "options": {
+                          "excludeByName": {
+                            "Time": true,
+                            "__name__": true,
+                            "container": true,
+                            "description": false,
+                            "endpoint": true,
+                            "id": false,
+                            "job": true,
+                            "namespace": true,
+                            "pod": true,
+                            "scan_type": true,
+                            "service": true,
+                            "tool": true
+                          },
+                          "includeByName": {},
+                          "indexByName": {
+                            "Time": 9,
+                            "Value": 20,
+                            "__name__": 21,
+                            "confidence": 5,
+                            "container": 10,
+                            "cwe": 3,
+                            "description": 2,
+                            "endpoint": 11,
+                            "id": 8,
+                            "impact": 6,
+                            "job": 12,
+                            "likelihood": 7,
+                            "namespace": 13,
+                            "owasp": 4,
+                            "pod": 14,
+                            "scan_type": 15,
+                            "service": 16,
+                            "severity": 1,
+                            "time": 17,
+                            "title": 0,
+                            "tool": 18,
+                            "workflow": 19
+                          },
+                          "renameByName": {
+                            "Time": "",
+                            "Value": "Ocurrencias",
+                            "confidence": "Confianza",
+                            "cwe": "CWE",
+                            "description": "Descripción",
+                            "id": "ID Regla",
+                            "impact": "Impacto",
+                            "likelihood": "Probabilidad",
+                            "owasp": "OWASP",
+                            "service": "",
+                            "severity": "Nivel Semgrep",
+                            "time": "Fecha análisis",
+                            "title": "Hallazgo"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "table",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "cellHeight": "sm",
+                    "showHeader": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      },
+                      "custom": {
+                        "align": "auto",
+                        "cellOptions": {
+                          "type": "auto"
+                        },
+                        "filterable": true,
+                        "footer": {
+                          "reducers": []
+                        },
+                        "inspect": false
+                      }
+                    },
+                    "overrides": [
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Regla"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 851
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "T"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 412
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Descripción"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 585
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Tipo de Hallazgo"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 303
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "OWASP"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 295
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "CWE"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 748
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Fecha análisis"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 199
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Hallazgo"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 303
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "panel-14": {
+            "kind": "Panel",
+            "spec": {
+              "id": 14,
+              "title": "Detalle GitLeaks ",
+              "description": "",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "securekubeops_security_finding_info{tool=\"gitleaks\", scan_type=\"secret_detection\"}",
+                            "format": "table",
+                            "instant": true,
+                            "legendFormat": "__auto",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [
+                    {
+                      "kind": "Transformation",
+                      "group": "labelsToFields",
+                      "spec": {
+                        "options": {}
+                      }
+                    },
+                    {
+                      "kind": "Transformation",
+                      "group": "organize",
+                      "spec": {
+                        "options": {
+                          "excludeByName": {
+                            "Time": true,
+                            "__name__": true,
+                            "container": true,
+                            "endpoint": true,
+                            "id": true,
+                            "job": true,
+                            "namespace": true,
+                            "pod": true,
+                            "scan_type": true,
+                            "service": true,
+                            "time": false,
+                            "tool": true,
+                            "workflow": true
+                          },
+                          "includeByName": {},
+                          "indexByName": {
+                            "Time": 0,
+                            "Value": 16,
+                            "__name__": 2,
+                            "container": 3,
+                            "description": 4,
+                            "endpoint": 5,
+                            "id": 6,
+                            "job": 7,
+                            "namespace": 8,
+                            "pod": 9,
+                            "scan_type": 10,
+                            "service": 11,
+                            "severity": 12,
+                            "time": 13,
+                            "title": 1,
+                            "tool": 14,
+                            "workflow": 15
+                          },
+                          "renameByName": {
+                            "Value": "Secretos Detectados",
+                            "description": "Descripción",
+                            "service": "Criticidad",
+                            "time": "Fecha Análisis",
+                            "title": "Control"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "table",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "cellHeight": "sm",
+                    "showHeader": true,
+                    "sortBy": [
+                      {
+                        "desc": false,
+                        "displayName": "id"
+                      }
+                    ]
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      },
+                      "custom": {
+                        "align": "auto",
+                        "cellOptions": {
+                          "type": "auto"
+                        },
+                        "filterable": true,
+                        "footer": {
+                          "reducers": []
+                        },
+                        "inspect": false
+                      }
+                    },
+                    "overrides": [
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "description"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 618
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "panel-15": {
+            "kind": "Panel",
+            "spec": {
+              "id": 15,
+              "title": "Detalle Trivy Imagen",
+              "description": "Vulnerabilidades detectadas por Trivy en la imagen Docker construida por el pipeline de validación de imagen. La tabla muestra el CVE, la severidad, el resumen del hallazgo, la descripción técnica y el número de ocurrencias registradas.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "securekubeops_security_finding_info{tool=\"trivy\", scan_type=\"image\"}",
+                            "format": "table",
+                            "instant": true,
+                            "legendFormat": "__auto",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [
+                    {
+                      "kind": "Transformation",
+                      "group": "labelsToFields",
+                      "spec": {
+                        "options": {}
+                      }
+                    },
+                    {
+                      "kind": "Transformation",
+                      "group": "organize",
+                      "spec": {
+                        "options": {
+                          "excludeByName": {
+                            "Time": true,
+                            "__name__": true,
+                            "container": true,
+                            "endpoint": true,
+                            "job": true,
+                            "namespace": true,
+                            "pod": true,
+                            "scan_type": true,
+                            "service": true,
+                            "tool": true,
+                            "workflow": true
+                          },
+                          "includeByName": {},
+                          "indexByName": {
+                            "Time": 3,
+                            "Value": 16,
+                            "__name__": 4,
+                            "container": 5,
+                            "description": 6,
+                            "endpoint": 7,
+                            "id": 0,
+                            "job": 8,
+                            "namespace": 9,
+                            "pod": 10,
+                            "scan_type": 11,
+                            "service": 12,
+                            "severity": 1,
+                            "time": 13,
+                            "title": 2,
+                            "tool": 14,
+                            "workflow": 15
+                          },
+                          "renameByName": {
+                            "Value": "Ocurrencias",
+                            "description": "Descripción",
+                            "id": "CVE",
+                            "severity": "SEVERIDAD",
+                            "time": "Fecha análisis",
+                            "title": "Vulnerabilidad"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "table",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "cellHeight": "sm",
+                    "showHeader": true,
+                    "sortBy": [
+                      {
+                        "desc": false,
+                        "displayName": "Fecha análisis"
+                      }
+                    ]
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      },
+                      "custom": {
+                        "align": "auto",
+                        "cellOptions": {
+                          "type": "auto"
+                        },
+                        "filterable": true,
+                        "footer": {
+                          "reducers": []
+                        },
+                        "inspect": false
+                      }
+                    },
+                    "overrides": [
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Descripción"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 1024
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Vulnerabilidad"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 770
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Fecha análisis"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 213
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "panel-16": {
+            "kind": "Panel",
+            "spec": {
+              "id": 16,
+              "title": "Detalle Trivy Kubernetes",
+              "description": "Hallazgos de configuración detectados por Trivy en los manifiestos Kubernetes del repositorio. La tabla muestra el identificador de la regla, la severidad, el tipo de configuración afectada, la descripción técnica y el número de ocurrencias registradas.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "securekubeops_security_finding_info{tool=\"trivy\", scan_type=\"config\"}\r\n",
+                            "format": "table",
+                            "instant": true,
+                            "legendFormat": "__auto",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [
+                    {
+                      "kind": "Transformation",
+                      "group": "labelsToFields",
+                      "spec": {
+                        "options": {}
+                      }
+                    },
+                    {
+                      "kind": "Transformation",
+                      "group": "organize",
+                      "spec": {
+                        "options": {
+                          "excludeByName": {
+                            "Time": true,
+                            "__name__": true,
+                            "container": true,
+                            "endpoint": true,
+                            "job": true,
+                            "namespace": true,
+                            "pod": true,
+                            "scan_type": true,
+                            "service": true,
+                            "tool": true,
+                            "workflow": true
+                          },
+                          "includeByName": {},
+                          "indexByName": {
+                            "Time": 5,
+                            "Value": 2,
+                            "__name__": 6,
+                            "container": 7,
+                            "description": 4,
+                            "endpoint": 8,
+                            "id": 0,
+                            "job": 9,
+                            "namespace": 10,
+                            "pod": 11,
+                            "scan_type": 12,
+                            "service": 13,
+                            "severity": 1,
+                            "time": 14,
+                            "title": 3,
+                            "tool": 15,
+                            "workflow": 16
+                          },
+                          "renameByName": {
+                            "Value": "Ocurrencias",
+                            "description": "Descripción",
+                            "endpoint": "",
+                            "id": "ID regla",
+                            "severity": "Severidad",
+                            "time": "Fecha análisis",
+                            "title": "Hallazgo de configuración"
+                          }
+                        }
+                      }
+                    }
+                  ],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "table",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "cellHeight": "sm",
+                    "showHeader": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      },
+                      "custom": {
+                        "align": "auto",
+                        "cellOptions": {
+                          "type": "auto"
+                        },
+                        "filterable": true,
+                        "footer": {
+                          "reducers": []
+                        },
+                        "inspect": false
+                      }
+                    },
+                    "overrides": [
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Descripción"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 860
+                          }
+                        ]
+                      },
+                      {
+                        "matcher": {
+                          "id": "byName",
+                          "options": "Hallazgo de configuración"
+                        },
+                        "properties": [
+                          {
+                            "id": "custom.width",
+                            "value": 503
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "panel-17": {
+            "kind": "Panel",
+            "spec": {
+              "id": 17,
+              "title": "Imágenes publicadas",
+              "description": "Número de imágenes Docker publicadas correctamente en GitHub Container Registry.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(securekubeops_promotion_total{stage=\"ghcr_publish\", result=\"success\"}) or vector(0)",
+                            "instant": true,
+                            "legendFormat": "__auto",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "fixed",
+                        "fixedColor": "green"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-18": {
+            "kind": "Panel",
+            "spec": {
+              "id": 18,
+              "title": "Publicaciones fallidas",
+              "description": "Número de intentos fallidos de publicación de imagen Docker en GitHub Container Registry.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "expr": "sum(securekubeops_promotion_total{stage=\"ghcr_publish\", result=\"failure\"}) or vector(0)",
+                            "legendFormat": "__auto",
+                            "range": true
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "fixed",
+                        "fixedColor": "red"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-19": {
+            "kind": "Panel",
+            "spec": {
+              "id": 19,
+              "title": "Promoción a main",
+              "description": "Resultado de los controles de promoción hacia main, incluyendo validación de rama y publicación de imagen.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (stage, result) (securekubeops_promotion_total)\r\n",
+                            "instant": true,
+                            "legendFormat": "{{stage}} - {{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "bargauge",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "displayMode": "basic",
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "list",
+                      "placement": "bottom",
+                      "showLegend": false
+                    },
+                    "maxVizHeight": 300,
+                    "minVizHeight": 16,
+                    "minVizWidth": 8,
+                    "namePlacement": "left",
+                    "orientation": "horizontal",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showUnfilled": true,
+                    "sizing": "auto",
+                    "valueMode": "color"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "min": 0,
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-2": {
+            "kind": "Panel",
+            "spec": {
+              "id": 2,
+              "title": "Ejecuciones exitosas",
+              "description": "Número total de ejecuciones finalizadas correctamente.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(securekubeops_pipeline_execution_total{result=\"success\"})",
+                            "instant": true,
+                            "legendFormat": "{{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-20": {
+            "kind": "Panel",
+            "spec": {
+              "id": 20,
+              "title": "SBOM generados",
+              "description": "Número de SBOM CycloneDX generados durante la validación de imágenes Docker.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "expr": "sum(securekubeops_supply_chain_artifact{artifact_type=\"sbom_cyclonedx\", result=\"generated\"}) or vector(0)\r\n",
+                            "legendFormat": "SBOM generados",
+                            "range": true
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "fixed",
+                        "fixedColor": "semi-dark-purple"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-21": {
+            "kind": "Panel",
+            "spec": {
+              "id": 21,
+              "title": "SBOM no generados",
+              "description": "Número de validaciones de imagen en las que no se generó SBOM.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "expr": "sum(securekubeops_supply_chain_artifact{artifact_type=\"sbom_cyclonedx\", result=\"missing\"}) or vector(0)\r\n",
+                            "legendFormat": "SBOM generados",
+                            "range": true
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "none",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 80,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "fixed",
+                        "fixedColor": "red"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-3": {
+            "kind": "Panel",
+            "spec": {
+              "id": 3,
+              "title": "Ejecuciones fallidas",
+              "description": "Número total de ejecuciones finalizadas con error.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(securekubeops_pipeline_execution_total{result=\"failure\"}) or vector(0)",
+                            "instant": true,
+                            "legendFormat": "{{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-4": {
+            "kind": "Panel",
+            "spec": {
+              "id": 4,
+              "title": "Porcentaje de éxito",
+              "description": "Porcentaje global de ejecuciones correctas respecto al total.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(securekubeops_pipeline_execution_total{result=\"success\"}) / sum(securekubeops_pipeline_execution_total) * 100",
+                            "instant": true,
+                            "legendFormat": "{{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "auto",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "percent",
+                      "decimals": 0,
+                      "min": 0,
+                      "max": 100,
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "red"
+                          },
+                          {
+                            "value": 80,
+                            "color": "green"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-5": {
+            "kind": "Panel",
+            "spec": {
+              "id": 5,
+              "title": "Ejecuciones por Workflow",
+              "description": "Desglose de ejecuciones por workflow y resultado. Cada barra representa una combinación workflow/resultado.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (workflow, result) (securekubeops_pipeline_execution_total)",
+                            "instant": true,
+                            "legendFormat": "{{workflow}} - {{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "bargauge",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "displayMode": "basic",
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "table",
+                      "placement": "right",
+                      "showLegend": true
+                    },
+                    "maxVizHeight": 300,
+                    "minVizHeight": 16,
+                    "minVizWidth": 8,
+                    "namePlacement": "hidden",
+                    "orientation": "horizontal",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showUnfilled": false,
+                    "sizing": "auto",
+                    "valueMode": "color"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "decimals": 0,
+                      "min": 0,
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-6": {
+            "kind": "Panel",
+            "spec": {
+              "id": 6,
+              "title": "% éxito por workflow",
+              "description": "Porcentaje de ejecuciones correctas por cada workflow.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (workflow) (securekubeops_pipeline_execution_total{result=\"success\"}) / sum by (workflow) (securekubeops_pipeline_execution_total) * 100",
+                            "instant": true,
+                            "legendFormat": "{{workflow}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "bargauge",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "displayMode": "basic",
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "table",
+                      "placement": "right",
+                      "showLegend": true
+                    },
+                    "maxVizHeight": 300,
+                    "minVizHeight": 16,
+                    "minVizWidth": 8,
+                    "namePlacement": "left",
+                    "orientation": "horizontal",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showUnfilled": false,
+                    "sizing": "auto",
+                    "valueMode": "color"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "percent",
+                      "decimals": 0,
+                      "min": 0,
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-7": {
+            "kind": "Panel",
+            "spec": {
+              "id": 7,
+              "title": "Controles por resultado",
+              "description": "Resultado agregado de los controles ejecutados por el pipeline.",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum by (control, result) (securekubeops_pipeline_control_total)",
+                            "instant": true,
+                            "legendFormat": "{{control}} - {{result}}",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "bargauge",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "displayMode": "basic",
+                    "legend": {
+                      "calcs": [],
+                      "displayMode": "table",
+                      "placement": "right",
+                      "showLegend": true
+                    },
+                    "maxVizHeight": 300,
+                    "minVizHeight": 16,
+                    "minVizWidth": 8,
+                    "namePlacement": "hidden",
+                    "orientation": "horizontal",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showUnfilled": false,
+                    "sizing": "auto",
+                    "valueMode": "color"
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "unit": "short",
+                      "decimals": 0,
+                      "min": 0,
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "palette-classic"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          },
+          "panel-9": {
+            "kind": "Panel",
+            "spec": {
+              "id": 9,
+              "title": "Secretos Detectados",
+              "description": "Número de posibles secretos detectados por GitLeaks.\n",
+              "links": [],
+              "data": {
+                "kind": "QueryGroup",
+                "spec": {
+                  "queries": [
+                    {
+                      "kind": "PanelQuery",
+                      "spec": {
+                        "query": {
+                          "kind": "DataQuery",
+                          "group": "prometheus",
+                          "version": "v0",
+                          "datasource": {
+                            "name": "prometheus"
+                          },
+                          "spec": {
+                            "editorMode": "code",
+                            "exemplar": false,
+                            "expr": "sum(securekubeops_security_finding_info{tool=\"gitleaks\", scan_type=\"secret_detection\"}) or vector(0)\r\n",
+                            "instant": true,
+                            "legendFormat": "Secretos",
+                            "range": false
+                          }
+                        },
+                        "refId": "A",
+                        "hidden": false
+                      }
+                    }
+                  ],
+                  "transformations": [],
+                  "queryOptions": {}
+                }
+              },
+              "vizConfig": {
+                "kind": "VizConfig",
+                "group": "stat",
+                "version": "13.0.1",
+                "spec": {
+                  "options": {
+                    "colorMode": "background",
+                    "graphMode": "area",
+                    "justifyMode": "center",
+                    "orientation": "auto",
+                    "percentChangeColorMode": "standard",
+                    "reduceOptions": {
+                      "calcs": [
+                        "lastNotNull"
+                      ],
+                      "fields": "",
+                      "values": false
+                    },
+                    "showPercentChange": false,
+                    "textMode": "auto",
+                    "wideLayout": true
+                  },
+                  "fieldConfig": {
+                    "defaults": {
+                      "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                          {
+                            "value": 0,
+                            "color": "green"
+                          },
+                          {
+                            "value": 1,
+                            "color": "red"
+                          }
+                        ]
+                      },
+                      "color": {
+                        "mode": "thresholds"
+                      }
+                    },
+                    "overrides": []
+                  }
+                }
+              }
+            }
+          }
+        },
+        "layout": {
+          "kind": "RowsLayout",
+          "spec": {
+            "rows": [
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Salud General",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-1"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 6,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-2"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 12,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-3"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 18,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-4"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Desglose por Workflow",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 0,
+                            "width": 12,
+                            "height": 8,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-5"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 12,
+                            "y": 0,
+                            "width": 12,
+                            "height": 8,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-6"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 8,
+                            "width": 24,
+                            "height": 12,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-7"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Hallazgos de seguridad",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 0,
+                            "width": 5,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-9"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 5,
+                            "y": 0,
+                            "width": 19,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-10"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 9,
+                            "width": 12,
+                            "height": 11,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-12"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 12,
+                            "y": 9,
+                            "width": 12,
+                            "height": 11,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-11"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Detalle de Hallazgos",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 0,
+                            "width": 24,
+                            "height": 8,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-14"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 8,
+                            "width": 24,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-13"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 17,
+                            "width": 24,
+                            "height": 13,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-15"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 30,
+                            "width": 24,
+                            "height": 11,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-16"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "kind": "RowsLayoutRow",
+                "spec": {
+                  "title": "Promoción y Publicación",
+                  "collapse": false,
+                  "layout": {
+                    "kind": "GridLayout",
+                    "spec": {
+                      "items": [
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-17"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 6,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-18"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 12,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-20"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 18,
+                            "y": 0,
+                            "width": 6,
+                            "height": 9,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-21"
+                            }
+                          }
+                        },
+                        {
+                          "kind": "GridLayoutItem",
+                          "spec": {
+                            "x": 0,
+                            "y": 9,
+                            "width": 24,
+                            "height": 6,
+                            "element": {
+                              "kind": "ElementReference",
+                              "name": "panel-19"
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "links": [],
+        "liveNow": false,
+        "preload": false,
+        "tags": [],
+        "timeSettings": {
+          "timezone": "browser",
+          "from": "now-6h",
+          "to": "now",
+          "autoRefresh": "",
+          "autoRefreshIntervals": [
+            "5s",
+            "10s",
+            "30s",
+            "1m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "2h",
+            "1d"
+          ],
+          "hideTimepicker": false,
+          "fiscalYearStartMonth": 0
+        },
+        "title": "Pipeline Dashboard",
+        "variables": [],
+        "preferences": {
+          "layout": {
+            "kind": "GridLayout",
+            "spec": {
+              "items": []
+            }
+          }
+        }
+      }
+    }

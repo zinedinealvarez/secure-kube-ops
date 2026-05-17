@@ -87,6 +87,14 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --n
 
 Este comando también aplica la configuración de persistencia definida en `monitoring/values.yaml`.
 
+Aplicar el dashboard versionado de SecureKubeOps para Grafana:
+
+```bash
+kubectl apply -f monitoring/grafana-dashboard-securekubeops-pipeline.yaml
+```
+
+El manifiesto crea un `ConfigMap` con la etiqueta `grafana_dashboard: "1"`. El sidecar de Grafana lo detecta y provisiona el dashboard `Pipeline Dashboard`. El identificador del dashboard se mantiene estable para que las actualizaciones sustituyan la versión anterior y no creen duplicados.
+
 Instalar Pushgateway fijando la versión del chart:
 
 ```bash
@@ -108,7 +116,7 @@ El orden de validación es:
 3. Enviar una métrica de prueba o un archivo `metrics.prom` según `docs/pipeline-metrics-integration.md`.
 4. Abrir Prometheus mediante `kubectl port-forward`.
 5. Consultar la métrica en Prometheus.
-6. Abrir Grafana y crear el dashboard usando `docs/pipeline-dashboard.md` como guía de paneles.
+6. Abrir Grafana y comprobar el dashboard `Pipeline Dashboard` provisionado desde `monitoring/grafana-dashboard-securekubeops-pipeline.yaml`.
 
 ## Comprobación de recursos
 

@@ -10,6 +10,13 @@ grafana:
   persistence:
     enabled: true
     size: 1Gi
+  initChownData:
+    enabled: false
+  sidecar:
+    dashboards:
+      provider:
+        folder: default
+        foldersFromFilesStructure: false
 
 prometheus:
   enabled: true

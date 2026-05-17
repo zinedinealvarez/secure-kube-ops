@@ -30,7 +30,7 @@ El pipeline de GitHub Actions se organiza en workflows separados para facilitar 
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado se incluye un despliegue Kubernetes básico para Minikube y una configuración inicial de observabilidad con `kube-prometheus-stack`. Todavía no se ha incorporado WAF.
+En este estado se incluye un despliegue Kubernetes básico para Minikube, una configuración inicial de observabilidad con `kube-prometheus-stack` y un despliegue independiente de OWASP Juice Shop como aplicación vulnerable complementaria para futuras pruebas de seguridad en runtime y WAF. Todavía no se ha incorporado WAF.
 
 Dependabot está configurado para revisar semanalmente las dependencias npm, las acciones de GitHub Actions y la imagen base definida en el `Dockerfile`.
 
@@ -151,6 +151,19 @@ En otra terminal:
 curl http://localhost:3000/health
 ```
 
+## Aplicación vulnerable de laboratorio
+
+OWASP Juice Shop se incorpora como una aplicación vulnerable complementaria dentro de SecureKubeOps. Su finalidad no es sustituir la aplicación de referencia actual, sino servir como objetivo controlado para futuras pruebas de seguridad en runtime y para la comparativa antes/después de incorporar un WAF.
+
+Los manifiestos se encuentran en `k8s/juice-shop/` e incluyen namespace, Deployment, Service y Kustomization. El acceso inicial se realiza mediante `kubectl port-forward`, sin Ingress, LoadBalancer ni WAF:
+
+```bash
+kubectl apply -k k8s/juice-shop
+kubectl port-forward -n vulnerable-lab service/juice-shop 3001:3000
+```
+
+La guía completa está disponible en `docs/juice-shop-deployment.md`.
+
 ## Observabilidad en Kubernetes
 
 La configuración inicial de observabilidad se encuentra en `monitoring/values.yaml` y está documentada en `docs/observability.md`.
@@ -249,6 +262,7 @@ La documentación técnica del repositorio se organiza en los siguientes documen
 | `docs/pipeline-metrics-integration.md` | Integración de métricas del pipeline mediante Pushgateway, Prometheus y Grafana. |
 | `docs/cluster-portability.md` | Puesta en marcha completa de SecureKubeOps en otro clúster Kubernetes. |
 | `docs/minikube-deployment.md` | Despliegue local de la API de referencia en Minikube. |
+| `docs/juice-shop-deployment.md` | Despliegue de OWASP Juice Shop como aplicación vulnerable complementaria para futuras pruebas de runtime y WAF. |
 | `docs/observability.md` | Configuración de observabilidad con `kube-prometheus-stack`. |
 | `docs/dependabot-decisions.md` | Decisiones tomadas sobre Pull Requests de Dependabot. |
 | `docs/lab-vulnerabilities.md` | Nota sobre datos de prueba y valores falsos utilizados en el contexto académico del TFG. |
@@ -280,6 +294,7 @@ El repositorio reúne los componentes necesarios para validar el ciclo de vida D
 - publicación controlada de imágenes en GHCR;
 - validación de imágenes y manifiestos Kubernetes;
 - despliegue local en Kubernetes con Minikube;
+- despliegue independiente de OWASP Juice Shop como aplicación vulnerable de laboratorio;
 - configuración de observabilidad con Prometheus y Grafana mediante `kube-prometheus-stack`;
 - documentación de evidencias, métricas y decisiones técnicas del pipeline.
 

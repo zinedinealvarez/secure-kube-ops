@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: juice-shop
+  labels:
+    app.kubernetes.io/name: juice-shop
+    app.kubernetes.io/component: vulnerable-web-app
+    app.kubernetes.io/part-of: secure-kube-ops
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: juice-shop
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
