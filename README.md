@@ -30,7 +30,7 @@ El pipeline de GitHub Actions se organiza en workflows separados para facilitar 
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
-En este estado se incluye un despliegue Kubernetes básico para Minikube, una configuración inicial de observabilidad con `kube-prometheus-stack` y un despliegue independiente de OWASP Juice Shop como aplicación vulnerable complementaria para futuras pruebas de seguridad en runtime y WAF. Todavía no se ha incorporado WAF.
+En este estado se incluye un despliegue Kubernetes básico para Minikube, una configuración inicial de observabilidad con `kube-prometheus-stack`, un despliegue independiente de OWASP Juice Shop como aplicación vulnerable complementaria y una preparación inicial de seguridad runtime con Trivy Operator en modo observación. Todavía no se ha incorporado WAF.
 
 Dependabot está configurado para revisar semanalmente las dependencias npm, las acciones de GitHub Actions y la imagen base definida en el `Dockerfile`.
 
@@ -185,6 +185,8 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --n
 
 `monitoring/values.yaml` activa persistencia para Prometheus y Grafana. Prometheus solicita `5Gi` y conserva métricas durante `7d`; Grafana solicita `1Gi` para conservar su estado local entre reinicios del Pod.
 
+Los dashboards propios de SecureKubeOps se provisionan mediante ConfigMaps con la etiqueta `grafana_dashboard: "1"` y la anotación `grafana_folder: SecureKubeOps`. El sidecar de Grafana usa `folderAnnotation` y `foldersFromFilesStructure: true` para colocarlos en la carpeta `SecureKubeOps`. Los dashboards por defecto de `kube-prometheus-stack` reciben la anotación `grafana_folder: Kubernetes` desde `monitoring/values.yaml`, por lo que quedan en una carpeta separada.
+
 Las métricas del pipeline se validan con la capa de observabilidad mediante Pushgateway, instalado como servicio interno del namespace `monitoring`. Los archivos `metrics.prom` se conservan como artifacts de GitHub Actions y se envían manualmente a Pushgateway durante la validación usando un `job` estable por workflow, por ejemplo `securekubeops-pre-analysis`, `securekubeops-image-validation`, `securekubeops-branch-policy` o `securekubeops-publish-image`:
 
 ```bash
@@ -193,6 +195,27 @@ helm upgrade --install pushgateway prometheus-community/prometheus-pushgateway -
 
 ```bash
 kubectl apply -f monitoring/pushgateway-servicemonitor.yaml
+```
+
+## Seguridad runtime del clúster
+
+La fase de seguridad runtime se prepara en `runtime-security/trivy-operator/` y se documenta en `docs/runtime-security-monitoring.md`.
+
+Trivy Operator se plantea en modo observación para generar reports sobre workloads desplegados sin bloquear despliegues ni modificar la aplicación de referencia, Juice Shop, workflows, AKS, WAF o NetworkPolicies.
+
+Los reports esperados son:
+
+- `VulnerabilityReport` para vulnerabilidades en imágenes que están ejecutándose;
+- `ConfigAuditReport` para configuraciones inseguras en recursos Kubernetes;
+- `ExposedSecretReport` para posibles secretos embebidos en imágenes.
+- RBAC Assessment e InfraAssessment para visibilidad adicional de permisos y postura del clúster.
+
+La instalación queda fijada mediante Helm y el archivo versionado `runtime-security/trivy-operator/values.yaml`:
+
+```bash
+kubectl apply -f runtime-security/trivy-operator/namespace.yaml
+helm upgrade --install trivy-operator aqua/trivy-operator --namespace runtime-security --version 0.32.1 -f runtime-security/trivy-operator/values.yaml
+kubectl apply --server-side -f monitoring/grafana-dashboard-trivy-operator.yaml
 ```
 
 ## Escaneo de imagen con Trivy
@@ -264,6 +287,7 @@ La documentación técnica del repositorio se organiza en los siguientes documen
 | `docs/minikube-deployment.md` | Despliegue local de la API de referencia en Minikube. |
 | `docs/juice-shop-deployment.md` | Despliegue de OWASP Juice Shop como aplicación vulnerable complementaria para futuras pruebas de runtime y WAF. |
 | `docs/observability.md` | Configuración de observabilidad con `kube-prometheus-stack`. |
+| `docs/runtime-security-monitoring.md` | Monitorización interna, inventario de workloads e imágenes, y seguridad runtime con Trivy Operator en modo observación. |
 | `docs/dependabot-decisions.md` | Decisiones tomadas sobre Pull Requests de Dependabot. |
 | `docs/lab-vulnerabilities.md` | Nota sobre datos de prueba y valores falsos utilizados en el contexto académico del TFG. |
 
@@ -296,6 +320,7 @@ El repositorio reúne los componentes necesarios para validar el ciclo de vida D
 - despliegue local en Kubernetes con Minikube;
 - despliegue independiente de OWASP Juice Shop como aplicación vulnerable de laboratorio;
 - configuración de observabilidad con Prometheus y Grafana mediante `kube-prometheus-stack`;
+- preparación de seguridad runtime con Trivy Operator para reports de workloads desplegados;
 - documentación de evidencias, métricas y decisiones técnicas del pipeline.
 
 El WAF no forma parte de la configuración implementada en este estado del repositorio.

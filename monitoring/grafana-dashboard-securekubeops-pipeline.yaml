@@ -3,17 +3,20 @@ kind: ConfigMap
 metadata:
   name: securekubeops-pipeline-dashboard
   namespace: monitoring
+  annotations:
+    grafana_folder: SecureKubeOps
   labels:
     grafana_dashboard: "1"
     app.kubernetes.io/name: securekubeops-pipeline-dashboard
     app.kubernetes.io/part-of: securekubeops
+    app.kubernetes.io/component: pipeline-dashboard
 data:
   securekubeops-pipeline-dashboard.json: |-
     {
       "apiVersion": "dashboard.grafana.app/v2",
       "kind": "Dashboard",
       "metadata": {
-        "name": "ad2mcdm"
+        "name": "securekubeops-pipeline-dashboard"
       },
       "spec": {
         "annotations": [
@@ -2566,7 +2569,7 @@ data:
           "hideTimepicker": false,
           "fiscalYearStartMonth": 0
         },
-        "title": "Pipeline Dashboard",
+        "title": "SecureKubeOps Pipeline Dashboard",
         "variables": [],
         "preferences": {
           "layout": {
