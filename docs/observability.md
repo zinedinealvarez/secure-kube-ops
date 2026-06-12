@@ -107,6 +107,10 @@ Los manifiestos crean `ConfigMap` con la etiqueta `grafana_dashboard: "1"`. El s
 
 Los dashboards propios de SecureKubeOps se agrupan en la carpeta `SecureKubeOps` mediante la anotación `grafana_folder: SecureKubeOps` incluida en sus ConfigMaps. El sidecar usa `folderAnnotation` y `foldersFromFilesStructure: true` para respetar esa carpeta. Los dashboards por defecto de `kube-prometheus-stack` reciben la anotación `grafana_folder: Kubernetes` desde `monitoring/values.yaml`, por lo que se agrupan en una carpeta separada.
 
+El dashboard `SecureKubeOps Cluster Overview` muestra el estado general del clúster con métricas estándar de Kubernetes, kube-state-metrics, node-exporter y Prometheus. Incluye resumen de nodos y namespaces, estado de nodos, pods por namespace, deployments y services por namespace, pods Running/Pending/Failed, reinicios de contenedores en la última hora, pods por nodo, deployments sin réplicas disponibles, uso de CPU y memoria por nodo, inventario de imágenes en ejecución, targets caídos y estado de Pushgateway.
+
+Este dashboard no utiliza métricas específicas de Azure ni Azure Monitor. La misma definición se utiliza en Minikube y se conserva reutilizable para un clúster AKS que tenga desplegados `kube-prometheus-stack`, `kube-state-metrics` y `node-exporter`.
+
 Instalar Pushgateway fijando la versión del chart:
 
 ```bash

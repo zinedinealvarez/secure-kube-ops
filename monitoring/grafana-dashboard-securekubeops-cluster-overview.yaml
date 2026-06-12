@@ -15,7 +15,7 @@ data:
     {
       "uid": "securekubeops-cluster-overview",
       "title": "SecureKubeOps Cluster Overview",
-      "description": "Kubernetes cluster overview for SecureKubeOps using kube-prometheus-stack, kube-state-metrics and node-exporter metrics. The dashboard avoids cloud-provider-specific metrics so it can be reused in Minikube and AKS.",
+      "description": "Dashboard de observabilidad del clúster Kubernetes para SecureKubeOps usando kube-prometheus-stack, kube-state-metrics y node-exporter. No usa métricas específicas de proveedor cloud, por lo que se reutiliza en Minikube y AKS.",
       "tags": [
         "securekubeops",
         "kubernetes",
@@ -23,7 +23,7 @@ data:
       ],
       "timezone": "browser",
       "schemaVersion": 39,
-      "version": 2,
+      "version": 4,
       "refresh": "30s",
       "time": {
         "from": "now-1h",
@@ -56,7 +56,7 @@ data:
         {
           "id": 1,
           "type": "row",
-          "title": "Cluster summary",
+          "title": "Resumen del clúster",
           "gridPos": {
             "x": 0,
             "y": 0,
@@ -70,7 +70,7 @@ data:
           "id": 2,
           "type": "stat",
           "title": "Nodos",
-          "description": "N?mero total de nodos detectados mediante kube-state-metrics.",
+          "description": "Número total de nodos detectados mediante kube-state-metrics.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -128,7 +128,7 @@ data:
           "id": 3,
           "type": "stat",
           "title": "Nodos Ready",
-          "description": "Nodos con condici?n Ready=true.",
+          "description": "Nodos con condición Ready=true.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -186,7 +186,7 @@ data:
           "id": 4,
           "type": "stat",
           "title": "Nodos no Ready",
-          "description": "Nodos con condici?n Ready=false o Ready=unknown.",
+          "description": "Nodos con condición Ready=false o Ready=unknown. El valor esperado es 0.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -200,11 +200,23 @@ data:
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "fixed",
-                "fixedColor": "red"
+                "mode": "thresholds"
               },
               "mappings": [],
-              "unit": "short"
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              }
             },
             "overrides": []
           },
@@ -302,7 +314,7 @@ data:
           "id": 6,
           "type": "table",
           "title": "Estado de nodos",
-          "description": "Estado Ready de cada nodo. Usa kube_node_status_condition.",
+          "description": "Estado Ready de cada nodo. Se muestran solo nodo, condición, estado y valor.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -325,7 +337,8 @@ data:
                 },
                 "inspect": false
               },
-              "mappings": []
+              "mappings": [],
+              "noValue": "Sin datos"
             },
             "overrides": []
           },
@@ -355,12 +368,44 @@ data:
               "refId": "A",
               "format": "table"
             }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "container": true,
+                  "endpoint": true,
+                  "instance": true,
+                  "job": true,
+                  "namespace": true,
+                  "pod": true,
+                  "service": true,
+                  "image": true,
+                  "deployment": true
+                },
+                "indexByName": {
+                  "node": 0,
+                  "condition": 1,
+                  "status": 2,
+                  "Value": 3
+                },
+                "renameByName": {
+                  "node": "Nodo",
+                  "condition": "Condición",
+                  "status": "Estado",
+                  "Value": "Valor"
+                }
+              }
+            }
           ]
         },
         {
           "id": 7,
           "type": "row",
-          "title": "Workloads and Kubernetes objects",
+          "title": "Workloads y objetos Kubernetes",
           "gridPos": {
             "x": 0,
             "y": 12,
@@ -374,7 +419,7 @@ data:
           "id": 8,
           "type": "bargauge",
           "title": "Pods por namespace",
-          "description": "N?mero de Pods por namespace, agrupando cualquier fase registrada.",
+          "description": "Número de Pods por namespace, agrupando cualquier fase registrada.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -440,7 +485,7 @@ data:
           "id": 9,
           "type": "bargauge",
           "title": "Deployments por namespace",
-          "description": "N?mero de Deployments por namespace.",
+          "description": "Número de Deployments por namespace.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -506,7 +551,7 @@ data:
           "id": 10,
           "type": "bargauge",
           "title": "Services por namespace",
-          "description": "N?mero de Services por namespace.",
+          "description": "Número de Services por namespace.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -570,9 +615,9 @@ data:
         },
         {
           "id": 11,
-          "type": "bargauge",
-          "title": "Pods Running / Pending / Failed",
-          "description": "Estado agregado de Pods en fases Running, Pending y Failed.",
+          "type": "stat",
+          "title": "Pods Running",
+          "description": "Número de Pods en fase Running.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
@@ -580,6 +625,274 @@ data:
           "gridPos": {
             "x": 0,
             "y": 20,
+            "w": 6,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "fixed",
+                "fixedColor": "green"
+              },
+              "mappings": [],
+              "unit": "short"
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(kube_pod_status_phase{namespace=~\"$namespace\",phase=\"Running\"} == 1) or vector(0)",
+              "instant": true,
+              "legendFormat": "Pods Running",
+              "range": false,
+              "refId": "A",
+              "format": "time_series"
+            }
+          ]
+        },
+        {
+          "id": 12,
+          "type": "stat",
+          "title": "Pods Pending",
+          "description": "Número de Pods en fase Pending. El valor esperado es 0.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "x": 6,
+            "y": 20,
+            "w": 6,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(kube_pod_status_phase{namespace=~\"$namespace\",phase=\"Pending\"} == 1) or vector(0)",
+              "instant": true,
+              "legendFormat": "Pods Pending",
+              "range": false,
+              "refId": "A",
+              "format": "time_series"
+            }
+          ]
+        },
+        {
+          "id": 13,
+          "type": "stat",
+          "title": "Pods Failed",
+          "description": "Número de Pods en fase Failed. El valor esperado es 0.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "x": 12,
+            "y": 20,
+            "w": 6,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(kube_pod_status_phase{namespace=~\"$namespace\",phase=\"Failed\"} == 1) or vector(0)",
+              "instant": true,
+              "legendFormat": "Pods Failed",
+              "range": false,
+              "refId": "A",
+              "format": "time_series"
+            }
+          ]
+        },
+        {
+          "id": 14,
+          "type": "stat",
+          "title": "Reinicios última hora",
+          "description": "Total de reinicios de contenedores durante la última hora. El valor esperado es 0.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "x": 18,
+            "y": 20,
+            "w": 6,
+            "h": 4
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "thresholds"
+              },
+              "mappings": [],
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              }
+            },
+            "overrides": []
+          },
+          "options": {
+            "colorMode": "background",
+            "graphMode": "none",
+            "justifyMode": "center",
+            "orientation": "auto",
+            "reduceOptions": {
+              "calcs": [
+                "lastNotNull"
+              ],
+              "fields": "",
+              "values": false
+            },
+            "showPercentChange": false,
+            "textMode": "auto",
+            "wideLayout": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "sum(increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[1h])) or vector(0)",
+              "instant": true,
+              "legendFormat": "Reinicios última hora",
+              "range": false,
+              "refId": "A",
+              "format": "time_series"
+            }
+          ]
+        },
+        {
+          "id": 15,
+          "type": "bargauge",
+          "title": "Pods por nodo",
+          "description": "Número de Pods asignados a cada nodo usando kube_pod_info.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "gridPos": {
+            "x": 0,
+            "y": 24,
             "w": 12,
             "h": 7
           },
@@ -587,7 +900,7 @@ data:
             "defaults": {
               "color": {
                 "mode": "fixed",
-                "fixedColor": "purple"
+                "fixedColor": "blue"
               },
               "mappings": [],
               "unit": "short"
@@ -625,9 +938,9 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum by (phase) (kube_pod_status_phase{namespace=~\"$namespace\",phase=~\"Running|Pending|Failed\"} == 1)",
+              "expr": "count by (node) (kube_pod_info{namespace=~\"$namespace\",node!=\"\"})",
               "instant": true,
-              "legendFormat": "{{phase}}",
+              "legendFormat": "{{node}}",
               "range": false,
               "refId": "A",
               "format": "time_series"
@@ -635,17 +948,17 @@ data:
           ]
         },
         {
-          "id": 12,
+          "id": 16,
           "type": "table",
-          "title": "Reinicios de contenedores - ?ltima hora",
-          "description": "Reinicios por namespace, pod y contenedor durante la ?ltima hora.",
+          "title": "Contenedores con reinicios - última hora",
+          "description": "Contenedores con reinicios superiores a 0 durante la última hora. Si no hay filas, no se han registrado reinicios.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "gridPos": {
             "x": 12,
-            "y": 20,
+            "y": 24,
             "w": 12,
             "h": 7
           },
@@ -661,7 +974,8 @@ data:
                 },
                 "inspect": false
               },
-              "mappings": []
+              "mappings": [],
+              "noValue": "Sin reinicios"
             },
             "overrides": []
           },
@@ -684,22 +998,145 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[1h]))",
+              "expr": "sum by (namespace, pod, container) (increase(kube_pod_container_status_restarts_total{namespace=~\"$namespace\"}[1h])) > 0",
               "instant": true,
               "legendFormat": "__auto",
               "range": false,
               "refId": "A",
               "format": "table"
             }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "endpoint": true,
+                  "instance": true,
+                  "job": true,
+                  "node": true,
+                  "service": true,
+                  "condition": true,
+                  "status": true,
+                  "image": true,
+                  "deployment": true
+                },
+                "indexByName": {
+                  "namespace": 0,
+                  "pod": 1,
+                  "container": 2,
+                  "Value": 3
+                },
+                "renameByName": {
+                  "namespace": "Namespace",
+                  "pod": "Pod",
+                  "container": "Container",
+                  "Value": "Reinicios"
+                }
+              }
+            }
           ]
         },
         {
-          "id": 13,
-          "type": "row",
-          "title": "Node resource usage",
+          "id": 17,
+          "type": "table",
+          "title": "Deployments sin réplicas disponibles",
+          "description": "Deployments con 0 réplicas disponibles y al menos 1 réplica deseada. Si no hay filas, no hay deployments afectados.",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
           "gridPos": {
             "x": 0,
-            "y": 27,
+            "y": 31,
+            "w": 24,
+            "h": 7
+          },
+          "fieldConfig": {
+            "defaults": {
+              "color": {
+                "mode": "palette-classic"
+              },
+              "custom": {
+                "align": "auto",
+                "cellOptions": {
+                  "type": "auto"
+                },
+                "inspect": false
+              },
+              "mappings": [],
+              "noValue": "Sin deployments afectados"
+            },
+            "overrides": []
+          },
+          "options": {
+            "cellHeight": "sm",
+            "footer": {
+              "countRows": false,
+              "fields": "",
+              "reducer": [
+                "sum"
+              ],
+              "show": false
+            },
+            "showHeader": true
+          },
+          "targets": [
+            {
+              "datasource": {
+                "type": "prometheus",
+                "uid": "prometheus"
+              },
+              "editorMode": "code",
+              "expr": "(kube_deployment_status_replicas_available{namespace=~\"$namespace\"} == 0) and on(namespace, deployment) (kube_deployment_spec_replicas{namespace=~\"$namespace\"} > 0)",
+              "instant": true,
+              "legendFormat": "__auto",
+              "range": false,
+              "refId": "A",
+              "format": "table"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "container": true,
+                  "endpoint": true,
+                  "instance": true,
+                  "job": true,
+                  "node": true,
+                  "pod": true,
+                  "service": true,
+                  "condition": true,
+                  "status": true,
+                  "image": true
+                },
+                "indexByName": {
+                  "namespace": 0,
+                  "deployment": 1,
+                  "Value": 2
+                },
+                "renameByName": {
+                  "namespace": "Namespace",
+                  "deployment": "Deployment",
+                  "Value": "Sin réplicas disponibles"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "id": 18,
+          "type": "row",
+          "title": "Uso de recursos de nodos",
+          "gridPos": {
+            "x": 0,
+            "y": 38,
             "w": 24,
             "h": 1
           },
@@ -707,17 +1144,17 @@ data:
           "panels": []
         },
         {
-          "id": 14,
+          "id": 19,
           "type": "bargauge",
           "title": "CPU usada por nodo (%)",
-          "description": "Porcentaje de CPU usada por nodo/instancia calculado con node-exporter.",
+          "description": "Porcentaje de CPU usada por nodo calculado con node-exporter.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "gridPos": {
             "x": 0,
-            "y": 28,
+            "y": 39,
             "w": 12,
             "h": 8
           },
@@ -728,7 +1165,10 @@ data:
                 "fixedColor": "red"
               },
               "mappings": [],
-              "unit": "percent"
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "decimals": 1
             },
             "overrides": []
           },
@@ -773,17 +1213,17 @@ data:
           ]
         },
         {
-          "id": 15,
+          "id": 20,
           "type": "bargauge",
           "title": "Memoria usada por nodo (%)",
-          "description": "Porcentaje de memoria usada por nodo/instancia calculado con node-exporter.",
+          "description": "Porcentaje de memoria usada por nodo calculado con node-exporter.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "gridPos": {
             "x": 12,
-            "y": 28,
+            "y": 39,
             "w": 12,
             "h": 8
           },
@@ -794,7 +1234,10 @@ data:
                 "fixedColor": "orange"
               },
               "mappings": [],
-              "unit": "percent"
+              "unit": "percent",
+              "min": 0,
+              "max": 100,
+              "decimals": 1
             },
             "overrides": []
           },
@@ -839,12 +1282,12 @@ data:
           ]
         },
         {
-          "id": 16,
+          "id": 21,
           "type": "row",
-          "title": "Images and runtime inventory",
+          "title": "Inventario de imágenes en ejecución",
           "gridPos": {
             "x": 0,
-            "y": 36,
+            "y": 47,
             "w": 24,
             "h": 1
           },
@@ -852,17 +1295,17 @@ data:
           "panels": []
         },
         {
-          "id": 17,
+          "id": 22,
           "type": "table",
-          "title": "Im?genes en ejecuci?n",
-          "description": "Inventario de im?genes actualmente referenciadas por contenedores en Pods. Muestra namespace, pod, container e image.",
+          "title": "Imágenes en ejecución",
+          "description": "Inventario de imágenes actualmente referenciadas por contenedores en Pods.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "gridPos": {
             "x": 0,
-            "y": 37,
+            "y": 48,
             "w": 24,
             "h": 10
           },
@@ -878,7 +1321,8 @@ data:
                 },
                 "inspect": false
               },
-              "mappings": []
+              "mappings": [],
+              "noValue": "Sin datos"
             },
             "overrides": []
           },
@@ -908,15 +1352,47 @@ data:
               "refId": "A",
               "format": "table"
             }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "endpoint": true,
+                  "instance": true,
+                  "job": true,
+                  "node": true,
+                  "service": true,
+                  "condition": true,
+                  "status": true,
+                  "deployment": true,
+                  "Value": true
+                },
+                "indexByName": {
+                  "namespace": 0,
+                  "pod": 1,
+                  "container": 2,
+                  "image": 3
+                },
+                "renameByName": {
+                  "namespace": "Namespace",
+                  "pod": "Pod",
+                  "container": "Container",
+                  "image": "Image"
+                }
+              }
+            }
           ]
         },
         {
-          "id": 18,
+          "id": 23,
           "type": "row",
-          "title": "Prometheus target health",
+          "title": "Salud de Prometheus",
           "gridPos": {
             "x": 0,
-            "y": 47,
+            "y": 58,
             "w": 24,
             "h": 1
           },
@@ -924,28 +1400,40 @@ data:
           "panels": []
         },
         {
-          "id": 19,
+          "id": 24,
           "type": "stat",
           "title": "Targets caídos",
-          "description": "N?mero de targets de Prometheus con up=0.",
+          "description": "Número de targets de Prometheus con up=0. El valor esperado es 0.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "gridPos": {
             "x": 0,
-            "y": 48,
+            "y": 59,
             "w": 6,
             "h": 4
           },
           "fieldConfig": {
             "defaults": {
               "color": {
-                "mode": "fixed",
-                "fixedColor": "red"
+                "mode": "thresholds"
               },
               "mappings": [],
-              "unit": "short"
+              "unit": "short",
+              "thresholds": {
+                "mode": "absolute",
+                "steps": [
+                  {
+                    "color": "green",
+                    "value": null
+                  },
+                  {
+                    "color": "red",
+                    "value": 1
+                  }
+                ]
+              }
             },
             "overrides": []
           },
@@ -972,7 +1460,7 @@ data:
                 "uid": "prometheus"
               },
               "editorMode": "code",
-              "expr": "sum(up == 0) or vector(0)",
+              "expr": "count(up == 0) or vector(0)",
               "instant": true,
               "legendFormat": "Targets caídos",
               "range": false,
@@ -982,7 +1470,7 @@ data:
           ]
         },
         {
-          "id": 20,
+          "id": 25,
           "type": "stat",
           "title": "Estado Pushgateway",
           "description": "Estado del target Pushgateway si existe. 1 significa up; 0 significa down o no scrapeado.",
@@ -992,7 +1480,7 @@ data:
           },
           "gridPos": {
             "x": 6,
-            "y": 48,
+            "y": 59,
             "w": 6,
             "h": 4
           },
@@ -1040,17 +1528,17 @@ data:
           ]
         },
         {
-          "id": 21,
+          "id": 26,
           "type": "table",
           "title": "Targets caídos - detalle",
-          "description": "Detalle de targets que Prometheus no puede scrapear.",
+          "description": "Detalle de targets que Prometheus no puede scrapear. Si no hay filas, no hay targets caídos.",
           "datasource": {
             "type": "prometheus",
             "uid": "prometheus"
           },
           "gridPos": {
             "x": 12,
-            "y": 48,
+            "y": 59,
             "w": 12,
             "h": 8
           },
@@ -1066,7 +1554,8 @@ data:
                 },
                 "inspect": false
               },
-              "mappings": []
+              "mappings": [],
+              "noValue": "Sin targets caídos"
             },
             "overrides": []
           },
@@ -1095,6 +1584,39 @@ data:
               "range": false,
               "refId": "A",
               "format": "table"
+            }
+          ],
+          "transformations": [
+            {
+              "id": "organize",
+              "options": {
+                "excludeByName": {
+                  "Time": true,
+                  "__name__": true,
+                  "container": true,
+                  "node": true,
+                  "pod": true,
+                  "condition": true,
+                  "status": true,
+                  "image": true,
+                  "deployment": true,
+                  "Value": true
+                },
+                "indexByName": {
+                  "job": 0,
+                  "namespace": 1,
+                  "service": 2,
+                  "instance": 3,
+                  "endpoint": 4
+                },
+                "renameByName": {
+                  "job": "Job",
+                  "namespace": "Namespace",
+                  "service": "Service",
+                  "instance": "Instance",
+                  "endpoint": "Endpoint"
+                }
+              }
             }
           ]
         }

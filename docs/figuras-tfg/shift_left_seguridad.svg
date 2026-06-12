@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1000" viewBox="0 0 1600 1000" role="img" aria-labelledby="title desc">
+  <title id="title">Seguridad shift-left en SecureKubeOps</title>
+  <desc id="desc">Figura académica original que explica el desplazamiento de controles de seguridad hacia fases tempranas del ciclo de entrega.</desc>
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .stage { fill: #f7fafc; stroke: #8da9ba; stroke-width: 2.5; }
+      .stage-early { fill: #edf7f1; stroke: #74ad82; stroke-width: 3; }
+      .stage-late { fill: #fff4ee; stroke: #d28a68; stroke-width: 2.5; }
+      .arrow-flow { fill: none; stroke: #7d96a7; stroke-width: 7; stroke-linecap: round; marker-end: url(#flowHead); }
+      .shift { fill: none; stroke: #4f8fb5; stroke-width: 10; stroke-linecap: round; stroke-linejoin: round; marker-end: url(#shiftHead); }
+      .cost { fill: none; stroke: #cb7f5b; stroke-width: 6; stroke-linecap: round; marker-end: url(#costHead); }
+      .pyramid { stroke: #ffffff; stroke-width: 3; }
+      .legend { fill: #f7f9fb; stroke: #c8d5de; stroke-width: 2; }
+      .title { font-family: Arial, Helvetica, sans-serif; font-size: 46px; font-weight: 700; fill: #243946; }
+      .subtitle { font-family: Arial, Helvetica, sans-serif; font-size: 25px; fill: #4e6572; }
+      .stage-text { font-family: Arial, Helvetica, sans-serif; font-size: 26px; font-weight: 700; fill: #263c49; text-anchor: middle; dominant-baseline: middle; }
+      .label { font-family: Arial, Helvetica, sans-serif; font-size: 23px; font-weight: 700; fill: #354d5b; text-anchor: middle; }
+      .small { font-family: Arial, Helvetica, sans-serif; font-size: 25px; fill: #4d6573; text-anchor: middle; }
+      .impact { font-family: Arial, Helvetica, sans-serif; font-size: 28px; font-weight: 700; fill: #334d5c; text-anchor: middle; }
+      .ptext { font-family: Arial, Helvetica, sans-serif; font-size: 22px; font-weight: 700; fill: #243946; text-anchor: middle; dominant-baseline: middle; }
+      .note { font-family: Arial, Helvetica, sans-serif; font-size: 24px; fill: #344a57; }
+    </style>
+    <marker id="flowHead" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#7d96a7"/>
+    </marker>
+    <marker id="shiftHead" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#4f8fb5"/>
+    </marker>
+    <marker id="costHead" viewBox="0 0 14 14" refX="12" refY="7" markerWidth="14" markerHeight="14" orient="auto">
+      <path d="M 1 1 L 13 7 L 1 13 z" fill="#cb7f5b"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="1600" height="1000"/>
+  <text class="title" x="800" y="78" text-anchor="middle">Seguridad shift-left en SecureKubeOps</text>
+  <text class="subtitle" x="800" y="118" text-anchor="middle">Los controles se adelantan para detectar riesgos antes de llegar a producción</text>
+
+  <line class="arrow-flow" x1="188" y1="318" x2="1410" y2="318"/>
+  <g>
+    <rect class="stage-early" x="112" y="244" width="202" height="148" rx="18"/>
+    <text class="stage-text" x="213" y="318">Código</text>
+
+    <rect class="stage-early" x="392" y="244" width="202" height="148" rx="18"/>
+    <text class="stage-text" x="493" y="318">Build</text>
+
+    <rect class="stage" x="672" y="244" width="202" height="148" rx="18"/>
+    <text class="stage-text" x="773" y="318">Test</text>
+
+    <rect class="stage-late" x="952" y="244" width="202" height="148" rx="18"/>
+    <text class="stage-text" x="1053" y="318">Deploy</text>
+
+    <rect class="stage-late" x="1232" y="244" width="202" height="148" rx="18"/>
+    <text class="stage-text" x="1333" y="318">Runtime</text>
+  </g>
+
+  <path class="shift" d="M 1306 190 C 1095 125 820 130 606 172 C 440 205 316 230 220 230"/>
+  <rect x="452" y="148" width="640" height="44" rx="18" fill="#ffffff" opacity="0.92"/>
+  <text class="label" x="772" y="177">Desplazamiento de la seguridad hacia fases tempranas</text>
+
+  <path class="cost" d="M 585 548 C 820 562 1088 625 1370 710"/>
+  <text class="small" x="326" y="474">Fases tempranas</text>
+  <text class="impact" x="326" y="510">menor coste / menor impacto</text>
+  <text class="small" x="1258" y="744">Fases tardías</text>
+  <text class="impact" x="1258" y="782">mayor coste / mayor impacto</text>
+
+  <g>
+    <polygon class="pyramid" fill="#eaf4fb" points="198,828 552,828 500,744 250,744"/>
+    <polygon class="pyramid" fill="#edf7f1" points="250,744 500,744 454,672 296,672"/>
+    <polygon class="pyramid" fill="#fff8e8" points="296,672 454,672 420,616 330,616"/>
+    <polygon class="pyramid" fill="#f7eef7" points="330,616 420,616 398,574 352,574"/>
+    <polygon class="pyramid" fill="#f3f6f8" points="352,574 398,574 375,532"/>
+    <text class="ptext" x="375" y="786">Cultura de seguridad</text>
+    <text class="ptext" x="375" y="710">Principios</text>
+    <text class="ptext" x="375" y="646">Políticas</text>
+    <text class="ptext" x="375" y="596">Prácticas</text>
+    <text class="ptext" x="375" y="555">Herramientas</text>
+  </g>
+
+  <g>
+    <rect class="legend" x="642" y="802" width="768" height="112" rx="16"/>
+    <text class="note" x="682" y="848">La detección temprana de fallos y vulnerabilidades reduce el coste</text>
+    <text class="note" x="682" y="884">de corrección y evita que los riesgos avancen hacia producción.</text>
+  </g>
+
+  <text class="small" x="802" y="954">Aplicable a validación de dependencias, análisis estático, pruebas de seguridad, políticas de despliegue y observabilidad</text>
+</svg>
