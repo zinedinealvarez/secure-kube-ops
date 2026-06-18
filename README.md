@@ -348,6 +348,7 @@ Las decisiones sobre las Pull Requests generadas por Dependabot se documentan en
 El repositorio utiliza un flujo de ramas simple basado en ramas de validación con prefijo `pre-` y una rama de producción:
 
 - `pre-*`: ramas de trabajo y validación. En estas ramas se trabaja directamente y se permite hacer push.
+- `dependabot/*`: ramas automáticas creadas por Dependabot. Solo se aceptan cuando la Pull Request la abre `dependabot[bot]`.
 - `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
 
 El flujo funciona así:
@@ -357,6 +358,8 @@ El flujo funciona así:
 3. Se abre una Pull Request desde la rama `pre-*` hacia `main`.
 4. `main` solo se actualiza mediante Pull Request.
 5. El merge a `main` se realiza cuando pasan los checks obligatorios.
+
+Las Pull Requests de Dependabot se permiten desde ramas `dependabot/*` como excepción controlada, ya que Dependabot genera sus propias ramas y no sigue el prefijo manual `pre-`. El check `Validate source branch` exige que coincidan el actor `dependabot[bot]` y el patrón de rama `dependabot/*`.
 
 Checks obligatorios configurados:
 
