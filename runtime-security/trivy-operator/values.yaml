@@ -1,0 +1,52 @@
+# Minimal Trivy Operator configuration for SecureKubeOps runtime-security checks.
+# The operator runs in observation mode: it creates reports but does not block workloads.
+
+targetNamespaces: ""
+excludeNamespaces: "kube-system,kube-public,kube-node-lease,monitoring,runtime-security"
+
+operator:
+  vulnerabilityScannerEnabled: true
+  configAuditScannerEnabled: true
+  exposedSecretScannerEnabled: true
+  rbacAssessmentScannerEnabled: true
+  infraAssessmentScannerEnabled: true
+  clusterComplianceEnabled: false
+  metricsFindingsEnabled: true
+  metricsVulnIdEnabled: true
+  metricsExposedSecretInfo: true
+  metricsConfigAuditInfo: true
+  metricsRbacAssessmentInfo: true
+  metricsInfraAssessmentInfo: true
+  scanJobsConcurrentLimit: 1
+  scanJobTimeout: 15m
+  scanJobTTL: "1200s"
+
+serviceMonitor:
+  enabled: true
+  namespace: monitoring
+  labels:
+    release: monitoring
+
+trivy:
+  severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
+  slow: true
+  timeout: "5m0s"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 200Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+trivyOperator:
+  vulnerabilityReportsPlugin: "Trivy"
+  reportRecordFailedChecksOnly: true
+  scanJobsInSameNamespace: false
+  scanJobPodTemplateContainerSecurityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+        - ALL
+    privileged: false
+    readOnlyRootFilesystem: true

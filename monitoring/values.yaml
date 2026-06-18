@@ -10,6 +10,16 @@ grafana:
   persistence:
     enabled: true
     size: 1Gi
+  initChownData:
+    enabled: false
+  sidecar:
+    dashboards:
+      folderAnnotation: grafana_folder
+      annotations:
+        grafana_folder: Kubernetes
+      provider:
+        folder: default
+        foldersFromFilesStructure: true
 
 prometheus:
   enabled: true

@@ -14,19 +14,29 @@ jobs:
       - name: Prepare reports directory
         run: mkdir -p reports/tools
 
-      - name: Ensure PR to main comes from pre-prefixed branch
+      - name: Ensure PR to main comes from an allowed source branch
         id: branch_policy
         continue-on-error: true
         env:
           SOURCE_BRANCH: ${{ github.head_ref }}
+          PR_ACTOR: ${{ github.actor }}
         run: |
           echo "Base branch: ${{ github.base_ref }}"
           echo "Source branch: ${SOURCE_BRANCH}"
+          echo "Actor: ${PR_ACTOR}"
 
-          if [[ "${SOURCE_BRANCH}" != pre-* ]]; then
-            echo "Pull Requests to main must come from a branch with the pre- prefix."
-            exit 1
+          if [[ "${SOURCE_BRANCH}" == pre-* ]]; then
+            echo "Allowed source branch: regular validation branch."
+            exit 0
           fi
+
+          if [[ "${PR_ACTOR}" == "dependabot[bot]" && "${SOURCE_BRANCH}" == dependabot/* ]]; then
+            echo "Allowed source branch: Dependabot update branch."
+            exit 0
+          fi
+
+          echo "Pull Requests to main must come from a branch with the pre- prefix, except Dependabot PRs from dependabot/* branches."
+          exit 1
 
       - name: Record Branch Policy evidence
         if: always()
@@ -109,10 +119,10 @@ jobs:
           <body>
             <h1>SecureKubeOps - Branch Policy</h1>
             <p class="meta">Resultados de la validación de política de ramas para la Pull Request <code>${{ github.head_ref }} -&gt; ${{ github.base_ref }}</code>.</p>
-            <p>El proceso comprueba que toda Pull Request dirigida a <code>main</code> procede de una rama con prefijo <code>pre-</code>.</p>
+            <p>El proceso comprueba que toda Pull Request dirigida a <code>main</code> procede de una rama con prefijo <code>pre-</code>, excepto las Pull Requests automaticas de Dependabot desde ramas <code>dependabot/*</code>.</p>
             <p>Se ha ejecutado el siguiente control:</p>
             <ul>
-              <li><strong>Validate source branch:</strong> verificación de que la rama origen de la Pull Request comienza por <code>pre-</code>.</li>
+              <li><strong>Validate source branch:</strong> verificacion de que la rama origen de la Pull Request esta permitida por la politica de ramas.</li>
             </ul>
             <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
             <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
@@ -146,6 +156,6 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.branch_policy.outcome }}" = "failure" ]; then
-            echo "Branch Policy failed: Pull Requests to main must come from a branch with the pre- prefix."
+            echo "Branch Policy failed: Pull Requests to main must come from a branch with the pre- prefix, except Dependabot PRs from dependabot/* branches."
             exit 1
           fi

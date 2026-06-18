@@ -3,6 +3,7 @@
 El repositorio de SecureKubeOps utiliza un flujo de ramas simple basado en ramas de validación con prefijo `pre-` y una rama de producción `main`.
 
 - `pre-*`: ramas de trabajo y validación. En estas ramas se trabaja directamente y se permite hacer push.
+- `dependabot/*`: ramas automáticas creadas por Dependabot para actualizar dependencias. Solo se aceptan cuando el actor de la Pull Request es `dependabot[bot]`.
 - `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
 
 ## Flujo de trabajo
@@ -14,6 +15,8 @@ El flujo operativo funciona así:
 3. Se abre una Pull Request desde la rama `pre-*` hacia `main`.
 4. `main` solo se actualiza mediante Pull Request.
 5. El merge a `main` se realiza cuando pasan los checks obligatorios de GitHub Actions.
+
+Las Pull Requests de Dependabot siguen el mismo control de entrada a `main`, pero se permiten desde ramas `dependabot/*` porque no puede configurarse Dependabot para usar el prefijo `pre-` del flujo manual del proyecto. La excepción queda limitada por actor: la rama solo se acepta si la Pull Request la abre `dependabot[bot]`.
 
 ## Protección de `main`
 
@@ -47,7 +50,7 @@ Changes must be made through a pull request.
 2 of 2 required status checks are expected.
 ```
 
-Este resultado confirma que `main` queda protegida y que los cambios entran mediante Pull Request desde ramas con prefijo `pre-`.
+Este resultado confirma que `main` queda protegida y que los cambios entran mediante Pull Request desde ramas con prefijo `pre-`, o desde ramas `dependabot/*` generadas por `dependabot[bot]`.
 
 ## Nota sobre disponibilidad de Branch protection
 

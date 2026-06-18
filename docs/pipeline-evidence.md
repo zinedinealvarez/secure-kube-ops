@@ -289,7 +289,7 @@ pull_request hacia main
 
 Control:
 
-- validación de rama origen con prefijo `pre-`.
+- validación de rama origen permitida: `pre-*` para trabajo manual o `dependabot/*` cuando el actor es `dependabot[bot]`.
 
 Evidencias:
 

@@ -28,6 +28,7 @@ La documentación operativa se reparte así:
 | `docs/pipeline-metrics-integration.md` | Envío y validación de métricas del pipeline mediante Pushgateway. |
 | `docs/pipeline-dashboard.md` | Diseño de paneles y consultas PromQL para Grafana. |
 | `docs/pipeline-evidence.md` | Estructura de artifacts y origen de `reports/metrics.prom`. |
+| `docs/runtime-security-monitoring.md` | Extensión de la observabilidad interna con inventario de workloads y reports de seguridad runtime mediante Trivy Operator. |
 
 ## Componentes incluidos
 
@@ -39,6 +40,8 @@ La configuración inicial habilita:
 - kube-state-metrics;
 - node-exporter;
 - Pushgateway para recibir métricas del pipeline DevSecOps.
+
+La seguridad runtime se documenta por separado en `docs/runtime-security-monitoring.md`. Esa fase reutiliza la base de Prometheus y Grafana, pero mantiene Trivy Operator en `runtime-security/` para separar observabilidad de seguridad sobre workloads en ejecución.
 
 Prometheus y Grafana usan persistencia mediante PersistentVolumeClaims. Prometheus conserva las series temporales durante `7d` y solicita `5Gi` de almacenamiento. Grafana solicita `1Gi` para conservar su estado local, incluida la configuración creada desde la interfaz.
 
@@ -87,6 +90,27 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --n
 
 Este comando también aplica la configuración de persistencia definida en `monitoring/values.yaml`.
 
+Aplicar el dashboard versionado de SecureKubeOps para Grafana:
+
+```bash
+kubectl apply -f monitoring/grafana-dashboard-securekubeops-pipeline.yaml
+kubectl apply -f monitoring/grafana-dashboard-securekubeops-cluster-overview.yaml
+```
+
+Para dashboards grandes, como el dashboard de runtime security de Trivy Operator, se usa server-side apply para evitar que `kubectl` guarde el JSON completo en la anotacion `last-applied-configuration`:
+
+```bash
+kubectl apply --server-side -f monitoring/grafana-dashboard-trivy-operator.yaml
+```
+
+Los manifiestos crean `ConfigMap` con la etiqueta `grafana_dashboard: "1"`. El sidecar de Grafana los detecta y provisiona los dashboards propios de SecureKubeOps. El identificador de cada dashboard se mantiene estable para que las actualizaciones sustituyan la versión anterior y no creen duplicados.
+
+Los dashboards propios de SecureKubeOps se agrupan en la carpeta `SecureKubeOps` mediante la anotación `grafana_folder: SecureKubeOps` incluida en sus ConfigMaps. El sidecar usa `folderAnnotation` y `foldersFromFilesStructure: true` para respetar esa carpeta. Los dashboards por defecto de `kube-prometheus-stack` reciben la anotación `grafana_folder: Kubernetes` desde `monitoring/values.yaml`, por lo que se agrupan en una carpeta separada.
+
+El dashboard `SecureKubeOps Cluster Overview` muestra el estado general del clúster con métricas estándar de Kubernetes, kube-state-metrics, node-exporter y Prometheus. Incluye resumen de nodos y namespaces, estado de nodos, pods por namespace, deployments y services por namespace, pods Running/Pending/Failed, reinicios de contenedores en la última hora, pods por nodo, deployments sin réplicas disponibles, uso de CPU y memoria por nodo, inventario de imágenes en ejecución, targets caídos y estado de Pushgateway.
+
+Este dashboard no utiliza métricas específicas de Azure ni Azure Monitor. La misma definición se utiliza en Minikube y se conserva reutilizable para un clúster AKS que tenga desplegados `kube-prometheus-stack`, `kube-state-metrics` y `node-exporter`.
+
 Instalar Pushgateway fijando la versión del chart:
 
 ```bash
@@ -108,7 +132,7 @@ El orden de validación es:
 3. Enviar una métrica de prueba o un archivo `metrics.prom` según `docs/pipeline-metrics-integration.md`.
 4. Abrir Prometheus mediante `kubectl port-forward`.
 5. Consultar la métrica en Prometheus.
-6. Abrir Grafana y crear el dashboard usando `docs/pipeline-dashboard.md` como guía de paneles.
+6. Abrir Grafana y comprobar los dashboards propios provisionados desde `monitoring/grafana-dashboard-securekubeops-pipeline.yaml` y `monitoring/grafana-dashboard-securekubeops-cluster-overview.yaml`.
 
 ## Comprobación de recursos
 

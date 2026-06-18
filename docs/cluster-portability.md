@@ -180,6 +180,14 @@ helm upgrade --install monitoring prometheus-community/kube-prometheus-stack --n
 
 La configuración de `monitoring/values.yaml` solicita almacenamiento persistente para Prometheus y Grafana. El clúster de destino necesita una StorageClass por defecto o una StorageClass compatible con aprovisionamiento dinámico.
 
+Aplicar el dashboard versionado de SecureKubeOps:
+
+```powershell
+kubectl apply -f monitoring/grafana-dashboard-securekubeops-pipeline.yaml
+```
+
+El manifiesto crea el `ConfigMap` que consume el sidecar de Grafana. El dashboard se provisiona con un identificador estable para que las siguientes aplicaciones del manifiesto actualicen el panel existente sin duplicarlo.
+
 Instalar o actualizar Pushgateway:
 
 ```powershell
@@ -371,7 +379,7 @@ http://localhost:3000
 
 Acceder con el usuario definido en `$env:GRAFANA_ADMIN_USER` y la contraseña definida en `$env:GRAFANA_ADMIN_PASSWORD`.
 
-Los paneles se construyen a partir de las consultas documentadas en `docs/pipeline-dashboard.md`.
+El dashboard `Pipeline Dashboard` queda provisionado desde `monitoring/grafana-dashboard-securekubeops-pipeline.yaml`. Las consultas y criterios de los paneles quedan documentados en `docs/pipeline-dashboard.md`.
 
 ## Ajustes habituales al cambiar de clúster
 

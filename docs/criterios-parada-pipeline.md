@@ -11,7 +11,7 @@ La especificación se organiza por workflow y describe el comportamiento esperad
 | `Pre Analysis` | `push` a ramas `pre-*` | Analiza secretos, código fuente y manifiestos Kubernetes antes de promover cambios a `main`. |
 | `Image Validation` | Pull Request hacia `main` | Construye la imagen Docker y valida sus vulnerabilidades antes del merge. |
 | `Publish Image` | `push` a `main` | Construye y publica la imagen validada en GHCR. |
-| `Branch Policy` | Pull Request hacia `main` | Valida que la PR hacia `main` proviene de una rama con prefijo `pre-`. |
+| `Branch Policy` | Pull Request hacia `main` | Valida que la PR hacia `main` proviene de una rama permitida: `pre-*` para trabajo manual o `dependabot/*` cuando el actor es `dependabot[bot]`. |
 
 ## Required checks de `main`
 
@@ -237,13 +237,13 @@ on:
 ### Validate source branch
 
 Objetivo del control:
-Garantizar que las Pull Requests hacia `main` provienen exclusivamente de ramas con prefijo `pre-`.
+Garantizar que las Pull Requests hacia `main` provienen de ramas permitidas por el flujo del proyecto: ramas manuales con prefijo `pre-` o ramas automáticas `dependabot/*` creadas por `dependabot[bot]`.
 
 Criterio de paso:
-La rama origen de la Pull Request comienza por `pre-`.
+La rama origen de la Pull Request comienza por `pre-`, o la Pull Request la abre `dependabot[bot]` desde una rama `dependabot/*`.
 
 Criterio de fallo:
-La Pull Request hacia `main` proviene de una rama que no comienza por `pre-`.
+La Pull Request hacia `main` proviene de una rama que no comienza por `pre-` y no es una Pull Request automática de Dependabot desde `dependabot/*`.
 
 Efecto del fallo:
 El check `Validate source branch` falla y la Branch protection rule impide el merge hacia `main`.
@@ -251,20 +251,30 @@ El check `Validate source branch` falla y la Branch protection rule impide el me
 Configuración YAML esperada:
 
 ```yaml
-- name: Ensure PR to main comes from pre-prefixed branch
+- name: Ensure PR to main comes from an allowed source branch
   env:
     SOURCE_BRANCH: ${{ github.head_ref }}
+    PR_ACTOR: ${{ github.actor }}
   run: |
     echo "Base branch: ${{ github.base_ref }}"
     echo "Source branch: ${SOURCE_BRANCH}"
+    echo "Actor: ${PR_ACTOR}"
 
-    if [[ "${SOURCE_BRANCH}" != pre-* ]]; then
-      echo "Pull Requests to main must come from a branch with the pre- prefix."
-      exit 1
+    if [[ "${SOURCE_BRANCH}" == pre-* ]]; then
+      echo "Allowed source branch: regular validation branch."
+      exit 0
     fi
+
+    if [[ "${PR_ACTOR}" == "dependabot[bot]" && "${SOURCE_BRANCH}" == dependabot/* ]]; then
+      echo "Allowed source branch: Dependabot update branch."
+      exit 0
+    fi
+
+    echo "Pull Requests to main must come from a branch with the pre- prefix, except Dependabot PRs from dependabot/* branches."
+    exit 1
 ```
 
-El criterio de parada se configura mediante la comprobación del prefijo `pre-` sobre `github.head_ref`.
+El criterio de parada se configura mediante la comprobación del prefijo `pre-` sobre `github.head_ref` y una excepción acotada para Dependabot que exige simultáneamente actor `dependabot[bot]` y rama `dependabot/*`.
 
 ## Workflow: Publish Image
 
@@ -369,5 +379,5 @@ Configuración YAML esperada:
 - Los hallazgos SAST que incumplen la política del proyecto bloquean el pipeline antes de construir artefactos.
 - Las configuraciones Kubernetes `HIGH` o `CRITICAL` bloquean la validación de manifiestos.
 - Las vulnerabilidades de imagen `HIGH` o `CRITICAL` con corrección disponible bloquean la PR hacia `main`.
-- La rama `main` solo recibe cambios desde ramas con prefijo `pre-` mediante Pull Request.
+- La rama `main` solo recibe cambios desde ramas con prefijo `pre-` mediante Pull Request, salvo actualizaciones automáticas de Dependabot desde `dependabot/*`.
 - La imagen se publica en GHCR únicamente desde código fusionado en `main`.

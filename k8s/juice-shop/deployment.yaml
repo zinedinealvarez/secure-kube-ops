@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: juice-shop
+  labels:
+    app.kubernetes.io/name: juice-shop
+    app.kubernetes.io/component: vulnerable-web-app
+    app.kubernetes.io/part-of: secure-kube-ops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: juice-shop
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: juice-shop
+        app.kubernetes.io/component: vulnerable-web-app
+        app.kubernetes.io/part-of: secure-kube-ops
+    spec:
+      containers:
+        - name: juice-shop
+          image: bkimminich/juice-shop:v19.2.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 3000
