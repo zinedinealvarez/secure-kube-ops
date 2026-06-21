@@ -664,6 +664,195 @@ Con esto queda validada la cadena:
 Trivy Operator reports -> metricas -> Prometheus -> Grafana
 ```
 
+## Self-hosted runner en AKS con Actions Runner Controller
+
+Para automatizar el envio futuro de metricas del pipeline a Pushgateway sin exponer Pushgateway publicamente, se desplego Actions Runner Controller (ARC) en AKS.
+
+La arquitectura validada es:
+
+```text
+GitHub Actions -> ARC listener -> runner efimero en AKS
+```
+
+El objetivo posterior es ampliar esta cadena para enviar `reports/metrics.prom` desde el runner efimero hacia el Service interno de Pushgateway:
+
+```text
+GitHub Actions -> runner en AKS -> Pushgateway ClusterIP -> Prometheus -> Grafana
+```
+
+### Instalacion del controller
+
+Primero se limpiaron credenciales locales erroneas de GHCR que impedian a Helm descargar el chart OCI de ARC:
+
+```powershell
+docker logout ghcr.io
+helm registry logout ghcr.io
+```
+
+Se instalo el controller de ARC:
+
+```powershell
+helm install arc `
+  --namespace arc-systems `
+  --create-namespace `
+  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
+```
+
+Resultado observado:
+
+```text
+Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller:0.14.2
+NAME: arc
+NAMESPACE: arc-systems
+STATUS: deployed
+DESCRIPTION: Install complete
+```
+
+Se comprobo el controller:
+
+```powershell
+kubectl get pods -n arc-systems
+```
+
+Resultado observado tras completar la configuracion:
+
+```text
+NAME                                    READY   STATUS    RESTARTS   AGE
+arc-gha-rs-controller-f6b864554-sj59p   1/1     Running   0          11m
+securekubeops-aks-f998cb8f-listener     1/1     Running   0          3m8s
+```
+
+### Token y Secret de ARC
+
+Se creo un token de GitHub limitado al repositorio `zinedinealvarez/secure-kube-ops` con permiso de administracion de repositorio en lectura y escritura, necesario para registrar self-hosted runners.
+
+El token no se guarda en el repositorio. Se paso mediante variable local:
+
+```powershell
+$env:GITHUB_ARC_TOKEN="TOKEN_DE_GITHUB_NO_VERSIONADO"
+```
+
+Se creo el namespace de runners y el Secret:
+
+```powershell
+kubectl create namespace arc-runners
+```
+
+```powershell
+kubectl create secret generic arc-github-token `
+  --namespace arc-runners `
+  --from-literal=github_token=$env:GITHUB_ARC_TOKEN
+```
+
+### Runner scale set
+
+Se instalo el runner scale set con el nombre `securekubeops-aks`. Este nombre se usa despues como valor de `runs-on` en GitHub Actions:
+
+```powershell
+helm install securekubeops-aks `
+  --namespace arc-runners `
+  --set githubConfigUrl="https://github.com/zinedinealvarez/secure-kube-ops" `
+  --set githubConfigSecret=arc-github-token `
+  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
+```
+
+Inicialmente se habia usado una URL de repositorio incorrecta. El controller devolvia errores `404 Not Found` al registrar el runner scale set:
+
+```text
+POST https://api.github.com/actions/runner-registration failed(status="404 Not Found")
+```
+
+Se corrigio el valor `githubConfigUrl` para apuntar al repositorio real:
+
+```powershell
+helm upgrade securekubeops-aks `
+  --namespace arc-runners `
+  --set githubConfigUrl="https://github.com/zinedinealvarez/secure-kube-ops" `
+  --set githubConfigSecret=arc-github-token `
+  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
+```
+
+Los logs del controller confirmaron que el runner scale set se creo o reutilizo correctamente:
+
+```text
+Created/Reused a runner scale set
+Created a new EphemeralRunnerSet resource
+Creating a new AutoscalingListener
+Created listener pod
+```
+
+Se comprobaron los recursos:
+
+```powershell
+kubectl get autoscalingrunnersets -n arc-runners
+kubectl get ephemeralrunnersets -n arc-runners
+```
+
+Resultado observado:
+
+```text
+NAME                MINIMUM RUNNERS   MAXIMUM RUNNERS   CURRENT RUNNERS   STATE   PENDING RUNNERS   RUNNING RUNNERS   FINISHED RUNNERS   DELETING RUNNERS
+securekubeops-aks
+
+NAME                      DESIREDREPLICAS   CURRENTREPLICAS   PENDING RUNNERS   RUNNING RUNNERS   FINISHED RUNNERS   DELETING RUNNERS
+securekubeops-aks-7qx76                     0
+```
+
+El valor `0` es esperado mientras no haya jobs pendientes, porque ARC crea runners efimeros bajo demanda.
+
+### Workflow de prueba
+
+Se creo un workflow manual para validar que GitHub Actions puede ejecutar jobs dentro de AKS:
+
+```text
+.github/workflows/arc-runner-test.yml
+```
+
+Contenido relevante:
+
+```yaml
+name: ARC Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-runner:
+    name: Test AKS self-hosted runner
+    runs-on: securekubeops-aks
+
+    steps:
+      - name: Show runner context
+        run: |
+          echo "Runner is working inside AKS"
+          hostname
+```
+
+Se lanzo manualmente desde GitHub Actions contra `main`. Durante la ejecucion, ARC creo un runner efimero en el namespace `arc-runners`:
+
+```powershell
+kubectl get pods -n arc-runners -w
+```
+
+Resultado observado:
+
+```text
+NAME                                   READY   STATUS              RESTARTS   AGE
+securekubeops-aks-7qx76-runner-g74st   0/1     Pending             0          0s
+securekubeops-aks-7qx76-runner-g74st   0/1     ContainerCreating   0          0s
+securekubeops-aks-7qx76-runner-g74st   1/1     Running             0          33s
+securekubeops-aks-7qx76-runner-g74st   0/1     Completed           0          43s
+securekubeops-aks-7qx76-runner-g74st   0/1     Terminating         0          43s
+```
+
+El workflow termino en GitHub Actions con estado `Success` y una duracion aproximada de 46 segundos.
+
+Con esta prueba queda validada la cadena:
+
+```text
+GitHub Actions -> ARC -> runner efimero en AKS -> job completado
+```
+
 ## Estado alcanzado
 
 En este punto ya se ha trasladado a AKS la parte base de SecureKubeOps:
@@ -681,10 +870,13 @@ En este punto ya se ha trasladado a AKS la parte base de SecureKubeOps:
 - reports de vulnerabilidades, configuracion y secretos expuestos generados por Trivy Operator.
 - metricas de Trivy visibles en Prometheus/Grafana;
 - dashboard de Trivy Operator aplicado en Grafana.
+- Actions Runner Controller desplegado en AKS;
+- runner scale set `securekubeops-aks` registrado en GitHub;
+- workflow manual ejecutado correctamente sobre runner efimero dentro de AKS.
 
 Quedan para las siguientes fases:
 
-- automatizacion del envio de metricas desde GitHub Actions;
+- automatizacion del envio de `reports/metrics.prom` desde GitHub Actions hacia Pushgateway interno;
 - Azure Application Gateway WAF delante del cluster.
 
 ## Referencias
