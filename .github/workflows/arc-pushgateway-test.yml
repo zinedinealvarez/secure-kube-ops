@@ -1,0 +1,27 @@
+name: ARC Pushgateway Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  push-metric:
+    name: Push test metric from AKS runner
+    runs-on: securekubeops-aks
+
+    steps:
+      - name: Generate test metric
+        run: |
+          mkdir -p reports
+          METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > reports/metrics.prom <<EOF
+          # HELP securekubeops_arc_pushgateway_test_total Test metric sent from an ARC runner inside AKS.
+          # TYPE securekubeops_arc_pushgateway_test_total counter
+          securekubeops_arc_pushgateway_test_total{source="arc_runner",result="success",time="${METRIC_TIME}"} 1
+          EOF
+          cat reports/metrics.prom
+
+      - name: Push test metric to internal Pushgateway
+        run: |
+          curl --fail --show-error --silent \
+            --data-binary @reports/metrics.prom \
+            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-arc-test
