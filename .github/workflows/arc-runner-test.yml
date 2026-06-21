@@ -1,0 +1,15 @@
+name: ARC Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-runner:
+    name: Test AKS self-hosted runner
+    runs-on: securekubeops-aks
+
+    steps:
+      - name: Show runner context
+        run: |
+          echo "Runner is working inside AKS"
+          hostname
