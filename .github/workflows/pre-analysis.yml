@@ -315,3 +315,30 @@ jobs:
             echo "One or more Pre Analysis controls failed."
             exit 1
           fi
+
+  push-pipeline-metrics:
+    name: Push Pipeline Metrics
+    needs: pre-analysis
+    if: always()
+    runs-on: securekubeops-aks
+
+    steps:
+      - name: Download Pre Analysis reports
+        id: download_reports
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: securekubeops-pre-analysis-security-results-${{ github.run_id }}-${{ github.sha }}
+          path: artifact
+
+      - name: Push metrics to internal Pushgateway
+        if: hashFiles('artifact/metrics.prom') != ''
+        continue-on-error: true
+        run: |
+          curl --fail --show-error --silent \
+            --data-binary @artifact/metrics.prom \
+            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-pre-analysis
+
+      - name: Report missing metrics artifact
+        if: hashFiles('artifact/metrics.prom') == ''
+        run: echo "No metrics.prom artifact found; skipping Pushgateway export."

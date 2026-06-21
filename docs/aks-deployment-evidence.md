@@ -853,6 +853,82 @@ Con esta prueba queda validada la cadena:
 GitHub Actions -> ARC -> runner efimero en AKS -> job completado
 ```
 
+### Envio de metrica desde runner ARC a Pushgateway interno
+
+Tras validar que el runner efimero se ejecutaba correctamente dentro de AKS, se creo un workflow manual para probar el envio de metricas hacia Pushgateway usando la red interna del cluster:
+
+```text
+.github/workflows/arc-pushgateway-test.yml
+```
+
+El workflow usa el runner scale set `securekubeops-aks`, genera un archivo `reports/metrics.prom` y lo envia con `curl` a Pushgateway mediante su DNS interno de Kubernetes:
+
+```text
+http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-arc-test
+```
+
+Contenido relevante:
+
+```yaml
+name: ARC Pushgateway Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  push-metric:
+    name: Push test metric from AKS runner
+    runs-on: securekubeops-aks
+
+    steps:
+      - name: Generate test metric
+        run: |
+          mkdir -p reports
+          METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > reports/metrics.prom <<EOF
+          # HELP securekubeops_arc_pushgateway_test_total Test metric sent from an ARC runner inside AKS.
+          # TYPE securekubeops_arc_pushgateway_test_total counter
+          securekubeops_arc_pushgateway_test_total{source="arc_runner",result="success",time="${METRIC_TIME}"} 1
+          EOF
+          cat reports/metrics.prom
+
+      - name: Push test metric to internal Pushgateway
+        run: |
+          curl --fail --show-error --silent \
+            --data-binary @reports/metrics.prom \
+            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-arc-test
+```
+
+La metrica se comprobo en Prometheus con la consulta:
+
+```promql
+securekubeops_arc_pushgateway_test_total
+```
+
+Resultado observado:
+
+```text
+securekubeops_arc_pushgateway_test_total{
+  container="pushgateway",
+  endpoint="http",
+  job="securekubeops-arc-test",
+  namespace="monitoring",
+  pod="pushgateway-758745bd7f-fjwlj",
+  result="success",
+  service="pushgateway",
+  source="arc_runner",
+  time="2026-06-21T10:09:25Z"
+} 1
+```
+
+Esta prueba valida la cadena completa:
+
+```text
+GitHub Actions -> runner efimero en AKS -> Pushgateway interno -> Prometheus
+```
+
+El patron se reutiliza en los workflows reales mediante un job final `Push Pipeline Metrics`. Los jobs principales se mantienen en `ubuntu-latest` y solo la exportacion de metricas se ejecuta en `securekubeops-aks`, descargando el artifact del workflow y enviando `reports/metrics.prom` al Pushgateway interno.
+
 ## Estado alcanzado
 
 En este punto ya se ha trasladado a AKS la parte base de SecureKubeOps:
@@ -873,10 +949,12 @@ En este punto ya se ha trasladado a AKS la parte base de SecureKubeOps:
 - Actions Runner Controller desplegado en AKS;
 - runner scale set `securekubeops-aks` registrado en GitHub;
 - workflow manual ejecutado correctamente sobre runner efimero dentro de AKS.
+- workflow manual de prueba enviando metricas desde runner ARC a Pushgateway interno;
+- metrica `securekubeops_arc_pushgateway_test_total` visible en Prometheus.
 
 Quedan para las siguientes fases:
 
-- automatizacion del envio de `reports/metrics.prom` desde GitHub Actions hacia Pushgateway interno;
+- validar el envio automatico de `reports/metrics.prom` en una ejecucion real de cada workflow;
 - Azure Application Gateway WAF delante del cluster.
 
 ## Referencias

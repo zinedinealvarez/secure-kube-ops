@@ -5,10 +5,12 @@ Este documento describe cómo SecureKubeOps integra las métricas del pipeline D
 El flujo de integración queda definido así:
 
 ```text
-GitHub Actions artifacts -> Pushgateway -> Prometheus -> Grafana
+GitHub Actions -> metrics.prom artifact -> ARC runner en AKS -> Pushgateway -> Prometheus -> Grafana
 ```
 
-Los workflows generan `reports/metrics.prom` como evidencia en formato Prometheus text format. Pushgateway actúa como punto de recepción para métricas generadas por procesos efímeros. Las métricas se conservan como artifacts y la validación del envío a Pushgateway se realiza de forma local mediante `kubectl port-forward`.
+Los workflows generan `reports/metrics.prom` como evidencia en formato Prometheus text format. Pushgateway actúa como punto de recepción para métricas generadas por procesos efímeros. Las métricas se conservan como artifacts y, en AKS, se envían automáticamente mediante un job final ejecutado en un runner efímero de Actions Runner Controller dentro del clúster.
+
+En Minikube o durante validaciones locales, el envío también puede comprobarse manualmente mediante `kubectl port-forward`.
 
 ## Cómo funciona
 
@@ -17,10 +19,12 @@ Prometheus normalmente obtiene métricas mediante un modelo pull: scrapea endpoi
 Pushgateway resuelve este caso actuando como intermediario:
 
 1. El workflow genera `reports/metrics.prom` dentro del artifact.
-2. El archivo `metrics.prom` se envía a Pushgateway mediante HTTP durante la validación local.
-3. Pushgateway conserva las series recibidas.
-4. Prometheus scrapea Pushgateway mediante el `ServiceMonitor`.
-5. Grafana consulta Prometheus usando PromQL.
+2. El artifact se conserva como evidencia descargable del workflow.
+3. Un job final ejecutado en `securekubeops-aks` descarga el artifact.
+4. Ese job envía `metrics.prom` a Pushgateway mediante HTTP usando el DNS interno `pushgateway.monitoring.svc.cluster.local`.
+5. Pushgateway conserva las series recibidas.
+6. Prometheus scrapea Pushgateway mediante el `ServiceMonitor`.
+7. Grafana consulta Prometheus usando PromQL.
 
 El detalle técnico completo de cada ejecución sigue estando en los artifacts. Pushgateway recibe métricas orientadas a Grafana: estado de workflows, resultado de controles y hallazgos de seguridad enriquecidos sin exponer secretos.
 
@@ -33,9 +37,14 @@ Pushgateway se despliega como servicio interno de Kubernetes:
 - sin `LoadBalancer`;
 - sin credenciales reales versionadas;
 - sin exposición pública desde el repositorio;
-- con un manifiesto `ServiceMonitor` versionado para que Prometheus lo descubra dentro del namespace `monitoring`.
+- con un manifiesto `ServiceMonitor` versionado para que Prometheus lo descubra dentro del namespace `monitoring`;
+- con envío automático desde runners efímeros dentro de AKS, sin publicar Pushgateway en internet.
 
-GitHub Actions no envía métricas automáticamente a Pushgateway porque Pushgateway se mantiene como servicio interno del clúster. En Minikube, la validación local se realiza mediante `kubectl port-forward`.
+GitHub Actions no puede enviar métricas a Pushgateway desde runners hospedados por GitHub (`ubuntu-latest`) porque Pushgateway se mantiene como servicio interno del clúster. Para resolverlo sin exponer el endpoint públicamente, SecureKubeOps usa Actions Runner Controller en AKS y añade un job final de exportación de métricas que se ejecuta en `runs-on: securekubeops-aks`.
+
+Los jobs principales de análisis, build y publicación se mantienen en `ubuntu-latest` porque ya dependen del entorno hospedado de GitHub, Docker y acciones de terceros. Solo el envío de métricas se delega al runner interno de AKS. Esta separación evita migrar controles pesados al clúster y reduce el riesgo operativo.
+
+En Minikube, la validación local se realiza mediante `kubectl port-forward`.
 
 La imagen utilizada por el chart se trata como un componente de terceros sujeto a revisión de vulnerabilidades. La configuración evita exposición pública directa y limita el uso de Pushgateway a la recepción de métricas del pipeline.
 
@@ -168,7 +177,16 @@ La métrica aparece cuando Prometheus ha scrapeado Pushgateway. Si no aparece in
 
 ## Envío de métricas del pipeline
 
-Cada workflow genera `reports/metrics.prom` dentro de su artifact. El envío a Pushgateway es manual durante la validación.
+Cada workflow genera `reports/metrics.prom` dentro de su artifact. En AKS, el envío a Pushgateway se automatiza mediante un job final llamado `Push Pipeline Metrics`.
+
+Ese job:
+
+1. depende del job principal del workflow mediante `needs`;
+2. se ejecuta con `if: always()` para intentar exportar métricas aunque el control principal falle;
+3. usa `runs-on: securekubeops-aks`, por lo que corre dentro de AKS mediante ARC;
+4. descarga el artifact del mismo workflow con `actions/download-artifact`;
+5. envía `metrics.prom` al Pushgateway interno mediante `curl`;
+6. funciona como exportación best effort, sin sustituir los criterios de parada del pipeline.
 
 El archivo que se envía es siempre `metrics.prom`. La URL de Pushgateway incluye un `job` estable para identificar el origen lógico de las métricas. Ese nombre no es una carpeta ni el nombre del repositorio; Pushgateway lo convierte en el label `job`.
 
@@ -181,7 +199,39 @@ El archivo que se envía es siempre `metrics.prom`. La URL de Pushgateway incluy
 
 El nombre del `job` se mantiene estable y descriptivo. No se usan como parte del `job` valores variables como commit, `run_id`, fecha o nombre exacto del ZIP.
 
-Procedimiento:
+### Envío automático en AKS
+
+El patrón aplicado a los workflows es:
+
+```yaml
+push-pipeline-metrics:
+  name: Push Pipeline Metrics
+  needs: <job-principal>
+  if: always()
+  runs-on: securekubeops-aks
+
+  steps:
+    - name: Download workflow reports
+      continue-on-error: true
+      uses: actions/download-artifact@v4
+      with:
+        name: <artifact-del-workflow>
+        path: artifact
+
+    - name: Push metrics to internal Pushgateway
+      if: hashFiles('artifact/metrics.prom') != ''
+      continue-on-error: true
+      run: |
+        curl --fail --show-error --silent \
+          --data-binary @artifact/metrics.prom \
+          http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/<job-estable>
+```
+
+La URL `pushgateway.monitoring.svc.cluster.local` solo es resoluble desde dentro del clúster. Por eso el job de envío usa el runner `securekubeops-aks`.
+
+### Validación manual local
+
+El envío manual se mantiene como procedimiento de diagnóstico o validación local:
 
 1. Descargar desde GitHub Actions el artifact del workflow que se quiere validar.
 2. Extraer el ZIP descargado.

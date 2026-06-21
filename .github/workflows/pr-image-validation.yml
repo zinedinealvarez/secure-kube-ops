@@ -276,3 +276,30 @@ jobs:
       #     ignore-unfixed: true
       #     vuln-type: os,library
       #     severity: HIGH,CRITICAL
+
+  push-pipeline-metrics:
+    name: Push Pipeline Metrics
+    needs: image-validation
+    if: always()
+    runs-on: securekubeops-aks
+
+    steps:
+      - name: Download Image Validation reports
+        id: download_reports
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: securekubeops-image-validation-security-results-${{ github.run_id }}-${{ github.sha }}
+          path: artifact
+
+      - name: Push metrics to internal Pushgateway
+        if: hashFiles('artifact/metrics.prom') != ''
+        continue-on-error: true
+        run: |
+          curl --fail --show-error --silent \
+            --data-binary @artifact/metrics.prom \
+            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-image-validation
+
+      - name: Report missing metrics artifact
+        if: hashFiles('artifact/metrics.prom') == ''
+        run: echo "No metrics.prom artifact found; skipping Pushgateway export."
