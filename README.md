@@ -284,6 +284,7 @@ La documentación técnica del repositorio se organiza en los siguientes documen
 | `docs/pipeline-dashboard.md` | Diseño del dashboard de Grafana para visualizar métricas del pipeline. |
 | `docs/pipeline-metrics-integration.md` | Integración de métricas del pipeline mediante Pushgateway, Prometheus y Grafana. |
 | `docs/cluster-portability.md` | Puesta en marcha completa de SecureKubeOps en otro clúster Kubernetes. |
+| `docs/aks-deployment-evidence.md` | Evidencia de despliegue real en AKS: conexión, Secret de GHCR, aplicación de referencia y Juice Shop. |
 | `docs/minikube-deployment.md` | Despliegue local de la API de referencia en Minikube. |
 | `docs/juice-shop-deployment.md` | Despliegue de OWASP Juice Shop como aplicación vulnerable complementaria para futuras pruebas de runtime y WAF. |
 | `docs/observability.md` | Configuración de observabilidad con `kube-prometheus-stack`. |
