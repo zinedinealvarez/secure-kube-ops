@@ -929,6 +929,87 @@ GitHub Actions -> runner efimero en AKS -> Pushgateway interno -> Prometheus
 
 El patron se reutiliza en los workflows reales mediante un job final `Push Pipeline Metrics`. Los jobs principales se mantienen en `ubuntu-latest` y solo la exportacion de metricas se ejecuta en `securekubeops-aks`, descargando el artifact del workflow y enviando `reports/metrics.prom` al Pushgateway interno.
 
+En una ejecucion real de `Pre Analysis` sobre la rama `pre-monitorizar`, el job `Push Pipeline Metrics` se ejecuto correctamente en un runner efimero de AKS:
+
+```text
+Runner name: securekubeops-aks-7qx76-runner-mb747
+Runner group name: Default
+Machine name: securekubeops-aks-7qx76-runner-mb747
+```
+
+El job descargo el artifact generado por `Pre Analysis`:
+
+```text
+Artifact download completed successfully.
+Total of 1 artifact(s) downloaded
+```
+
+Despues ejecuto el envio a Pushgateway interno:
+
+```text
+Run curl --fail --show-error --silent \
+```
+
+El workflow termino con estado correcto:
+
+```text
+Push Pipeline Metrics succeeded
+```
+
+El paso `Report missing metrics artifact` quedo omitido porque el archivo `metrics.prom` si estaba disponible dentro del artifact descargado.
+
+Se comprobo en Prometheus que las metricas reales del workflow estaban disponibles tras el envio automatico.
+
+Consulta:
+
+```promql
+securekubeops_pipeline_execution_total
+```
+
+Resultado observado:
+
+```text
+securekubeops_pipeline_execution_total{
+  branch_type="pre",
+  event="push",
+  job="securekubeops-pre-analysis",
+  result="success",
+  workflow="pre_analysis"
+} 1
+```
+
+Consulta:
+
+```promql
+securekubeops_pipeline_control_total
+```
+
+Resultado observado:
+
+```text
+securekubeops_pipeline_control_total{category="secret_detection", control="gitleaks", job="securekubeops-pre-analysis", result="success", workflow="pre_analysis"} 1
+securekubeops_pipeline_control_total{category="sast", control="semgrep_sast", job="securekubeops-pre-analysis", result="success", workflow="pre_analysis"} 1
+securekubeops_pipeline_control_total{category="iac_scan", control="trivy_config", job="securekubeops-pre-analysis", result="success", workflow="pre_analysis"} 1
+```
+
+Con esta comprobacion queda validada la automatizacion real para `Pre Analysis`:
+
+```text
+Pre Analysis -> artifact metrics.prom -> Push Pipeline Metrics en ARC -> Pushgateway -> Prometheus
+```
+
+Posteriormente se validaron tambien los workflows restantes:
+
+- `Branch Policy`: el job `Push Pipeline Metrics` descargo el artifact `securekubeops-branch-policy-results-*`, envio `metrics.prom` a Pushgateway y termino correctamente.
+- `Image Validation`: el workflow mostro los jobs `Image Validation` y `Push Pipeline Metrics` en verde.
+- `Publish Image`: tras el merge de la Pull Request hacia `main`, el workflow `Publish Image` ejecuto `Publish Image` y `Push Pipeline Metrics` correctamente.
+
+Con estas ejecuciones queda validado el patron de exportacion automatica para los workflows principales:
+
+```text
+workflow principal -> artifact metrics.prom -> Push Pipeline Metrics en ARC -> Pushgateway interno -> Prometheus/Grafana
+```
+
 ## Estado alcanzado
 
 En este punto ya se ha trasladado a AKS la parte base de SecureKubeOps:
@@ -951,10 +1032,11 @@ En este punto ya se ha trasladado a AKS la parte base de SecureKubeOps:
 - workflow manual ejecutado correctamente sobre runner efimero dentro de AKS.
 - workflow manual de prueba enviando metricas desde runner ARC a Pushgateway interno;
 - metrica `securekubeops_arc_pushgateway_test_total` visible en Prometheus.
+- envio automatico real de metricas de `Pre Analysis` validado en Prometheus.
+- jobs `Push Pipeline Metrics` ejecutados correctamente en `Branch Policy`, `Image Validation` y `Publish Image`.
 
 Quedan para las siguientes fases:
 
-- validar el envio automatico de `reports/metrics.prom` en una ejecucion real de cada workflow;
 - Azure Application Gateway WAF delante del cluster.
 
 ## Referencias
