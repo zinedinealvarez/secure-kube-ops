@@ -46,7 +46,7 @@ data:
                   ],
         "panels":  [
                        {
-                           "collapsed":  true,
+                           "collapsed":  false,
                            "gridPos":  {
                                            "h":  1,
                                            "w":  24,
@@ -2082,7 +2082,7 @@ data:
                            "type":  "row"
                        },
                        {
-                           "collapsed":  false,
+                           "collapsed":  true,
                            "gridPos":  {
                                            "h":  1,
                                            "w":  24,

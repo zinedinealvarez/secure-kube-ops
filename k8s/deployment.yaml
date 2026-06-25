@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: secure-kube-ops
+  namespace: application
   labels:
     app: secure-kube-ops
 spec:
