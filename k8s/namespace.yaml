@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: application
+  labels:
+    app.kubernetes.io/name: secure-kube-ops
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/purpose: application
