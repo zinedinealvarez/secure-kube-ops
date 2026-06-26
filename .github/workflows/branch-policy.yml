@@ -170,7 +170,7 @@ jobs:
       - name: Download Branch Policy reports
         id: download_reports
         continue-on-error: true
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: securekubeops-branch-policy-results-${{ github.run_id }}-${{ github.sha }}
           path: artifact
