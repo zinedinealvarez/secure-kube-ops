@@ -54,6 +54,21 @@ jobs:
           vuln-type: os,library
           severity: UNKNOWN,LOW,MEDIUM,HIGH,CRITICAL
 
+      - name: Trivy image Security Gate
+        id: trivy_image_gate
+        if: always() && steps.docker_build.outcome == 'success'
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: secure-kube-ops:${{ github.sha }}
+          scanners: vuln
+          format: table
+          exit-code: 1
+          ignore-unfixed: true
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+
       - name: Generate image SBOM
         id: trivy_sbom
         if: always() && steps.docker_build.outcome == 'success'
@@ -82,6 +97,7 @@ jobs:
             "controls": {
               "docker_build": "${{ steps.docker_build.outcome }}",
               "trivy_image_scan": "${{ steps.trivy_image_scan.outcome }}",
+              "trivy_image_gate": "${{ steps.trivy_image_gate.outcome }}",
               "trivy_sbom": "${{ steps.trivy_sbom.outcome }}"
             }
           }
@@ -93,7 +109,8 @@ jobs:
             echo "| Control | Result | Evidence |"
             echo "| --- | --- | --- |"
             echo "| Docker build | ${{ steps.docker_build.outcome }} | metadata.json |"
-            echo "| Trivy image scan | ${{ steps.trivy_image_scan.outcome }} | tools/trivy-image.json |"
+            echo "| Trivy image report | ${{ steps.trivy_image_scan.outcome }} | tools/trivy-image.json |"
+            echo "| Trivy image Security Gate | ${{ steps.trivy_image_gate.outcome }} | tools/trivy-image.json |"
             echo "| Trivy SBOM | ${{ steps.trivy_sbom.outcome }} | tools/sbom.cyclonedx.json |"
             echo ""
             echo "Image: \`secure-kube-ops:${{ github.sha }}\`"
@@ -109,7 +126,7 @@ jobs:
         run: |
           METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
-          if [ "${{ steps.docker_build.outcome }}" = "failure" ] || [ "${{ steps.trivy_image_scan.outcome }}" = "failure" ] || [ "${{ steps.trivy_sbom.outcome }}" = "failure" ]; then
+          if [ "${{ steps.docker_build.outcome }}" = "failure" ] || [ "${{ steps.trivy_sbom.outcome }}" = "failure" ]; then
             PIPELINE_RESULT="failure"
           fi
 
@@ -126,7 +143,7 @@ jobs:
           # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
           # TYPE securekubeops_pipeline_control_total counter
           securekubeops_pipeline_control_total{workflow="image_validation",control="docker_build",category="image_build",result="${{ steps.docker_build.outcome }}",time="${METRIC_TIME}"} 1
-          securekubeops_pipeline_control_total{workflow="image_validation",control="trivy_image",category="image_scan",result="${{ steps.trivy_image_scan.outcome }}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_control_total{workflow="image_validation",control="trivy_image",category="image_scan",result="${{ steps.trivy_image_gate.outcome }}",time="${METRIC_TIME}"} 1
           securekubeops_pipeline_control_total{workflow="image_validation",control="trivy_sbom",category="sbom",result="${{ steps.trivy_sbom.outcome }}",time="${METRIC_TIME}"} 1
           # HELP securekubeops_security_finding_info Security findings exported with scanner metadata for Grafana tables.
           # TYPE securekubeops_security_finding_info gauge
@@ -217,7 +234,7 @@ jobs:
             <p>Se han ejecutado los siguientes controles:</p>
             <ul>
               <li><strong>Docker build:</strong> construcción de la imagen candidata a partir del Dockerfile del repositorio.</li>
-              <li><strong>Trivy image scan:</strong> escaneo informativo de vulnerabilidades del sistema operativo y librerías incluidas en la imagen.</li>
+              <li><strong>Trivy image scan:</strong> escaneo de vulnerabilidades del sistema operativo y librerías incluidas en la imagen, con Security Gate para severidades HIGH y CRITICAL con corrección disponible.</li>
               <li><strong>Trivy SBOM:</strong> generación del inventario CycloneDX de componentes incluidos en la imagen.</li>
             </ul>
             <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
@@ -232,7 +249,8 @@ jobs:
               </thead>
               <tbody>
                 <tr><td>Docker build</td><td>${{ steps.docker_build.outcome }}</td><td>metadata.json</td></tr>
-                <tr><td>Trivy image scan</td><td>${{ steps.trivy_image_scan.outcome }}</td><td>tools/trivy-image.json</td></tr>
+                <tr><td>Trivy image report</td><td>${{ steps.trivy_image_scan.outcome }}</td><td>tools/trivy-image.json</td></tr>
+                <tr><td>Trivy image Security Gate</td><td>${{ steps.trivy_image_gate.outcome }}</td><td>tools/trivy-image.json</td></tr>
                 <tr><td>Trivy SBOM</td><td>${{ steps.trivy_sbom.outcome }}</td><td>tools/sbom.cyclonedx.json</td></tr>
               </tbody>
             </table>
@@ -257,25 +275,10 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.docker_build.outcome }}" = "failure" ] || \
-             [ "${{ steps.trivy_image_scan.outcome }}" = "failure" ] || \
              [ "${{ steps.trivy_sbom.outcome }}" = "failure" ]; then
             echo "One or more Image Validation controls failed."
             exit 1
           fi
-
-      # Trivy Security Gate validated during the TFG.
-      # It will be re-enabled in the final phase to block images with HIGH or CRITICAL vulnerabilities.
-      # - name: Trivy Security Gate
-      #   uses: aquasecurity/trivy-action@v0.36.0
-      #   with:
-      #     scan-type: image
-      #     image-ref: secure-kube-ops:${{ github.sha }}
-      #     scanners: vuln
-      #     format: table
-      #     exit-code: 1
-      #     ignore-unfixed: true
-      #     vuln-type: os,library
-      #     severity: HIGH,CRITICAL
 
   push-pipeline-metrics:
     name: Push Pipeline Metrics

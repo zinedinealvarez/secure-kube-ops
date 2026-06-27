@@ -355,8 +355,8 @@ prometheus-operated                     ClusterIP   None           <none>       
 Se aplicaron los dashboards propios de SecureKubeOps:
 
 ```powershell
-kubectl apply -f monitoring/grafana-dashboard-securekubeops-pipeline.yaml
-kubectl apply -f monitoring/grafana-dashboard-securekubeops-cluster-overview.yaml
+kubectl apply -f monitoring/dashboards/grafana-dashboard-securekubeops-pipeline.yaml
+kubectl apply -f monitoring/dashboards/grafana-dashboard-securekubeops-cluster-overview.yaml
 ```
 
 ## Pushgateway interno para metricas del pipeline
@@ -655,7 +655,7 @@ Las metricas aparecieron correctamente en Prometheus/Grafana.
 Se aplico el dashboard versionado de Trivy Operator:
 
 ```powershell
-kubectl apply --server-side -f monitoring/grafana-dashboard-trivy-operator.yaml
+kubectl apply --server-side -f monitoring/dashboards/grafana-dashboard-trivy-operator.yaml
 ```
 
 Con esto queda validada la cadena:
