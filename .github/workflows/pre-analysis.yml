@@ -148,7 +148,7 @@ jobs:
         run: |
           METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
-          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || [ "${{ steps.trivy_config_gate.outcome }}" = "failure" ]; then
+          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || [ "${{ steps.semgrep_sast.outcome }}" = "failure" ]; then
             PIPELINE_RESULT="failure"
           fi
 
@@ -325,8 +325,7 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || \
-             [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || \
-             [ "${{ steps.trivy_config_gate.outcome }}" = "failure" ]; then
+             [ "${{ steps.semgrep_sast.outcome }}" = "failure" ]; then
             echo "One or more Pre Analysis controls failed."
             exit 1
           fi

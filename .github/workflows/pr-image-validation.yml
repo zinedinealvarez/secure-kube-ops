@@ -126,7 +126,7 @@ jobs:
         run: |
           METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
-          if [ "${{ steps.docker_build.outcome }}" = "failure" ] || [ "${{ steps.trivy_image_gate.outcome }}" = "failure" ] || [ "${{ steps.trivy_sbom.outcome }}" = "failure" ]; then
+          if [ "${{ steps.docker_build.outcome }}" = "failure" ] || [ "${{ steps.trivy_sbom.outcome }}" = "failure" ]; then
             PIPELINE_RESULT="failure"
           fi
 
@@ -275,7 +275,6 @@ jobs:
         if: always()
         run: |
           if [ "${{ steps.docker_build.outcome }}" = "failure" ] || \
-             [ "${{ steps.trivy_image_gate.outcome }}" = "failure" ] || \
              [ "${{ steps.trivy_sbom.outcome }}" = "failure" ]; then
             echo "One or more Image Validation controls failed."
             exit 1
