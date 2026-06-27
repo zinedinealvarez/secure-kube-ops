@@ -266,7 +266,7 @@ pull_request hacia main
 Controles:
 
 - Docker build;
-- Trivy image scan informativo;
+- Trivy image scan con Security Gate para vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible;
 - generación de SBOM CycloneDX.
 
 Evidencias:

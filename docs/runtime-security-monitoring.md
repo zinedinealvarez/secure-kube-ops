@@ -304,13 +304,13 @@ En esta fase no se anade un dashboard nuevo obligatorio. Primero se validan los 
 El dashboard de runtime security se provisiona desde:
 
 ```text
-monitoring/grafana-dashboard-trivy-operator.yaml
+monitoring/dashboards/grafana-dashboard-trivy-operator.yaml
 ```
 
 Aplicarlo:
 
 ```powershell
-kubectl apply --server-side -f monitoring/grafana-dashboard-trivy-operator.yaml
+kubectl apply --server-side -f monitoring/dashboards/grafana-dashboard-trivy-operator.yaml
 ```
 
 El dashboard utiliza el datasource `prometheus` y contiene secciones para vulnerabilidades, configuraciones inseguras, secretos embebidos, RBAC Assessment e InfraAssessment.

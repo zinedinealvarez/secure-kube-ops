@@ -26,7 +26,7 @@ El repositorio contiene actualmente una aplicación Express mínima con endpoint
 
 La aplicación puede ejecutarse directamente con Node.js o empaquetarse como imagen Docker mediante el `Dockerfile` incluido. La imagen puede construirse localmente y ejecutarse en un contenedor para validar que el comportamiento de la API se mantiene.
 
-El pipeline de GitHub Actions se organiza en workflows separados para facilitar la validación del flujo DevSecOps. **Pre Analysis** se ejecuta al hacer push a ramas con prefijo `pre-` y agrupa GitLeaks, Semgrep y el escaneo de manifiestos Kubernetes con Trivy. **Image Validation** se ejecuta en Pull Requests hacia `main` y valida la construcción de la imagen Docker junto con el escaneo informativo de vulnerabilidades de imagen. **Publish Image** se ejecuta al actualizar `main` y publica la imagen validada en GHCR.
+El pipeline de GitHub Actions se organiza en workflows separados para facilitar la validación del flujo DevSecOps. **Pre Analysis** se ejecuta al hacer push a ramas con prefijo `pre-` y agrupa GitLeaks, Semgrep y el escaneo de manifiestos Kubernetes con Trivy. **Image Validation** se ejecuta en Pull Requests hacia `main` y valida la construcción de la imagen Docker junto con el Security Gate de vulnerabilidades de imagen. **Publish Image** se ejecuta al actualizar `main` y publica la imagen validada en GHCR.
 
 También se incluye documentación inicial del contexto académico del proyecto, un archivo `.env.example` con valores falsos de laboratorio y una nota sobre datos de prueba en `docs/lab-vulnerabilities.md`.
 
@@ -215,22 +215,20 @@ La instalación queda fijada mediante Helm y el archivo versionado `runtime-secu
 ```bash
 kubectl apply -f runtime-security/trivy-operator/namespace.yaml
 helm upgrade --install trivy-operator aqua/trivy-operator --namespace runtime-security --version 0.32.1 -f runtime-security/trivy-operator/values.yaml
-kubectl apply --server-side -f monitoring/grafana-dashboard-trivy-operator.yaml
+kubectl apply --server-side -f monitoring/dashboards/grafana-dashboard-trivy-operator.yaml
 ```
 
 ## Escaneo de imagen con Trivy
 
 El workflow **Image Validation** incluye un escaneo de la imagen Docker con Trivy.
 
-Trivy se mantiene en modo informativo y muestra todos los hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL` sin bloquear la ejecución.
-
-El Security Gate de Trivy ya fue validado durante el desarrollo del TFG y queda documentado en el workflow como criterio bloqueante para vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
+Trivy genera un informe completo con hallazgos de severidad `UNKNOWN`, `LOW`, `MEDIUM`, `HIGH` y `CRITICAL`. Además, el workflow incorpora un Security Gate que bloquea la validación cuando detecta vulnerabilidades `HIGH` o `CRITICAL` con corrección disponible.
 
 ## Escaneo de manifiestos Kubernetes con Trivy
 
-El workflow **Pre Analysis** incorpora un escaneo informativo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC durante la validación previa en ramas con prefijo `pre-`.
+El workflow **Pre Analysis** incorpora un escaneo de configuración sobre el directorio `k8s/` mediante Trivy `config`. Este control revisa los manifiestos Kubernetes como IaC durante la validación previa en ramas con prefijo `pre-`.
 
-El escaneo no bloquea el pipeline; se utiliza para obtener visibilidad sobre la configuración de Kubernetes y conservar evidencia de los hallazgos detectados.
+El workflow conserva un informe completo de configuración y aplica un Security Gate que bloquea el pipeline cuando se detectan configuraciones de severidad `HIGH` o `CRITICAL`.
 
 ## Detección de secretos con GitLeaks
 

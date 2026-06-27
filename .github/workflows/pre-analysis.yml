@@ -70,7 +70,7 @@ jobs:
         continue-on-error: true
         env:
           WORKSPACE: ${{ github.workspace }}
-        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/tools/semgrep.json
+        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config .semgrep.yml . --json-output reports/tools/semgrep.json --error
 
       - name: Informational Trivy Kubernetes config scan
         id: trivy_config_scan
@@ -93,6 +93,18 @@ jobs:
           output: reports/tools/trivy-config.json
           exit-code: 0
 
+      - name: Trivy Kubernetes config Security Gate
+        id: trivy_config_gate
+        if: always()
+        continue-on-error: true
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: k8s/
+          format: table
+          exit-code: 1
+          severity: HIGH,CRITICAL
+
       - name: Write Pre Analysis metadata and summary
         if: always()
         run: |
@@ -107,7 +119,8 @@ jobs:
             "controls": {
               "gitleaks": "${{ steps.gitleaks.outcome }}",
               "semgrep_sast": "${{ steps.semgrep_sast.outcome }}",
-              "trivy_config": "${{ steps.trivy_config_scan.outcome }}"
+              "trivy_config_scan": "${{ steps.trivy_config_scan.outcome }}",
+              "trivy_config_gate": "${{ steps.trivy_config_gate.outcome }}"
             }
           }
           EOF
@@ -119,7 +132,8 @@ jobs:
             echo "| --- | --- | --- |"
             echo "| GitLeaks | ${{ steps.gitleaks.outcome }} | tools/gitleaks-summary.json |"
             echo "| Semgrep SAST | ${{ steps.semgrep_sast.outcome }} | tools/semgrep.json |"
-            echo "| Trivy config | ${{ steps.trivy_config_scan.outcome }} | tools/trivy-config.json |"
+            echo "| Trivy config report | ${{ steps.trivy_config_scan.outcome }} | tools/trivy-config.json |"
+            echo "| Trivy config Security Gate | ${{ steps.trivy_config_gate.outcome }} | tools/trivy-config.json |"
             echo ""
             echo "Commit: \`${{ github.sha }}\`"
             echo "Branch: \`${{ github.ref_name }}\`"
@@ -134,7 +148,7 @@ jobs:
         run: |
           METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
-          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || [ "${{ steps.trivy_config_scan.outcome }}" = "failure" ]; then
+          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || [ "${{ steps.trivy_config_gate.outcome }}" = "failure" ]; then
             PIPELINE_RESULT="failure"
           fi
 
@@ -146,7 +160,7 @@ jobs:
           # TYPE securekubeops_pipeline_control_total counter
           securekubeops_pipeline_control_total{workflow="pre_analysis",control="gitleaks",category="secret_detection",result="${{ steps.gitleaks.outcome }}",time="${METRIC_TIME}"} 1
           securekubeops_pipeline_control_total{workflow="pre_analysis",control="semgrep_sast",category="sast",result="${{ steps.semgrep_sast.outcome }}",time="${METRIC_TIME}"} 1
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_scan.outcome }}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_gate.outcome }}",time="${METRIC_TIME}"} 1
           # HELP securekubeops_security_finding_info Security findings exported with scanner metadata for Grafana tables.
           # TYPE securekubeops_security_finding_info gauge
           EOF
@@ -286,7 +300,8 @@ jobs:
               <tbody>
                 <tr><td>GitLeaks</td><td>${{ steps.gitleaks.outcome }}</td><td>tools/gitleaks-summary.json</td></tr>
                 <tr><td>Semgrep SAST</td><td>${{ steps.semgrep_sast.outcome }}</td><td>tools/semgrep.json</td></tr>
-                <tr><td>Trivy config</td><td>${{ steps.trivy_config_scan.outcome }}</td><td>tools/trivy-config.json</td></tr>
+                <tr><td>Trivy config report</td><td>${{ steps.trivy_config_scan.outcome }}</td><td>tools/trivy-config.json</td></tr>
+                <tr><td>Trivy config Security Gate</td><td>${{ steps.trivy_config_gate.outcome }}</td><td>tools/trivy-config.json</td></tr>
               </tbody>
             </table>
           </body>
@@ -311,7 +326,7 @@ jobs:
         run: |
           if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || \
              [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || \
-             [ "${{ steps.trivy_config_scan.outcome }}" = "failure" ]; then
+             [ "${{ steps.trivy_config_gate.outcome }}" = "failure" ]; then
             echo "One or more Pre Analysis controls failed."
             exit 1
           fi

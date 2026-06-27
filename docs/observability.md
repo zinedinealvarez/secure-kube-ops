@@ -93,14 +93,14 @@ Este comando también aplica la configuración de persistencia definida en `moni
 Aplicar el dashboard versionado de SecureKubeOps para Grafana:
 
 ```bash
-kubectl apply -f monitoring/grafana-dashboard-securekubeops-pipeline.yaml
-kubectl apply -f monitoring/grafana-dashboard-securekubeops-cluster-overview.yaml
+kubectl apply -f monitoring/dashboards/grafana-dashboard-securekubeops-pipeline.yaml
+kubectl apply -f monitoring/dashboards/grafana-dashboard-securekubeops-cluster-overview.yaml
 ```
 
 Para dashboards grandes, como el dashboard de runtime security de Trivy Operator, se usa server-side apply para evitar que `kubectl` guarde el JSON completo en la anotacion `last-applied-configuration`:
 
 ```bash
-kubectl apply --server-side -f monitoring/grafana-dashboard-trivy-operator.yaml
+kubectl apply --server-side -f monitoring/dashboards/grafana-dashboard-trivy-operator.yaml
 ```
 
 Los manifiestos crean `ConfigMap` con la etiqueta `grafana_dashboard: "1"`. El sidecar de Grafana los detecta y provisiona los dashboards propios de SecureKubeOps. El identificador de cada dashboard se mantiene estable para que las actualizaciones sustituyan la versión anterior y no creen duplicados.
@@ -132,7 +132,7 @@ El orden de validación es:
 3. Enviar una métrica de prueba o un archivo `metrics.prom` según `docs/pipeline-metrics-integration.md`.
 4. Abrir Prometheus mediante `kubectl port-forward`.
 5. Consultar la métrica en Prometheus.
-6. Abrir Grafana y comprobar los dashboards propios provisionados desde `monitoring/grafana-dashboard-securekubeops-pipeline.yaml` y `monitoring/grafana-dashboard-securekubeops-cluster-overview.yaml`.
+6. Abrir Grafana y comprobar los dashboards propios provisionados desde `monitoring/dashboards/grafana-dashboard-securekubeops-pipeline.yaml` y `monitoring/dashboards/grafana-dashboard-securekubeops-cluster-overview.yaml`.
 
 ## Comprobación de recursos
 

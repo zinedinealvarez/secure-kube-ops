@@ -183,7 +183,7 @@ La configuración de `monitoring/values.yaml` solicita almacenamiento persistent
 Aplicar el dashboard versionado de SecureKubeOps:
 
 ```powershell
-kubectl apply -f monitoring/grafana-dashboard-securekubeops-pipeline.yaml
+kubectl apply -f monitoring/dashboards/grafana-dashboard-securekubeops-pipeline.yaml
 ```
 
 El manifiesto crea el `ConfigMap` que consume el sidecar de Grafana. El dashboard se provisiona con un identificador estable para que las siguientes aplicaciones del manifiesto actualicen el panel existente sin duplicarlo.
@@ -379,7 +379,7 @@ http://localhost:3000
 
 Acceder con el usuario definido en `$env:GRAFANA_ADMIN_USER` y la contraseña definida en `$env:GRAFANA_ADMIN_PASSWORD`.
 
-El dashboard `Pipeline Dashboard` queda provisionado desde `monitoring/grafana-dashboard-securekubeops-pipeline.yaml`. Las consultas y criterios de los paneles quedan documentados en `docs/pipeline-dashboard.md`.
+El dashboard `Pipeline Dashboard` queda provisionado desde `monitoring/dashboards/grafana-dashboard-securekubeops-pipeline.yaml`. Las consultas y criterios de los paneles quedan documentados en `docs/pipeline-dashboard.md`.
 
 ## Ajustes habituales al cambiar de clúster
 
