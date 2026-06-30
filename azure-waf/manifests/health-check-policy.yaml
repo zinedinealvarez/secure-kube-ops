@@ -1,0 +1,26 @@
+apiVersion: alb.networking.azure.io/v1
+kind: HealthCheckPolicy
+metadata:
+  name: securekubeops-health-check
+  namespace: application
+  labels:
+    app.kubernetes.io/name: secure-kube-ops
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+spec:
+  targetRef:
+    group: ""
+    kind: Service
+    name: secure-kube-ops
+  default:
+    interval: 15s
+    timeout: 5s
+    healthyThreshold: 1
+    unhealthyThreshold: 2
+    port: 3000
+    http:
+      path: /health
+      match:
+        statusCodes:
+          - start: 200
+            end: 299
