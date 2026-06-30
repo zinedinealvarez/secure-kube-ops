@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secure-kube-ops
+  namespace: application
+  labels:
+    app: secure-kube-ops
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: secure-kube-ops
+  template:
+    metadata:
+      labels:
+        app: secure-kube-ops
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull-secret
+      containers:
+        - name: secure-kube-ops-api
+          image: ghcr.io/zinedinealvarez/secure-kube-ops:c8bb3311048aef2694adb3a5705e20916e58cff5
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000

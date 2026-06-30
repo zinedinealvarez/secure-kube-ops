@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: alb-infra
+  labels:
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+---
+apiVersion: alb.networking.azure.io/v1
+kind: ApplicationLoadBalancer
+metadata:
+  name: securekubeops-alb
+  namespace: alb-infra
+  labels:
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+spec:
+  associations:
+    - "<ALB_SUBNET_ID>"

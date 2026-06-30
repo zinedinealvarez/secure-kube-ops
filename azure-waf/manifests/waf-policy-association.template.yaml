@@ -1,0 +1,35 @@
+apiVersion: alb.networking.azure.io/v1
+kind: WebApplicationFirewallPolicy
+metadata:
+  name: juice-shop-waf-policy
+  namespace: vulnerable-lab
+  labels:
+    app.kubernetes.io/name: juice-shop
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: juice-shop-route
+    namespace: vulnerable-lab
+  webApplicationFirewall:
+    id: "<AZURE_WAF_POLICY_RESOURCE_ID>"
+---
+apiVersion: alb.networking.azure.io/v1
+kind: WebApplicationFirewallPolicy
+metadata:
+  name: securekubeops-waf-policy
+  namespace: application
+  labels:
+    app.kubernetes.io/name: secure-kube-ops
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: HTTPRoute
+    name: securekubeops-route
+    namespace: application
+  webApplicationFirewall:
+    id: "<AZURE_WAF_POLICY_RESOURCE_ID>"

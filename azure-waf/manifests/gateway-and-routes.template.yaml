@@ -1,0 +1,78 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: securekubeops-gateway
+  namespace: alb-infra
+  labels:
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+  annotations:
+    alb.networking.azure.io/alb-namespace: alb-infra
+    alb.networking.azure.io/alb-name: securekubeops-alb
+spec:
+  gatewayClassName: azure-alb-external
+  listeners:
+    - name: juice-shop-http
+      port: 80
+      protocol: HTTP
+      hostname: "juice-shop.<BASE_DOMAIN>"
+      allowedRoutes:
+        namespaces:
+          from: All
+    - name: securekubeops-http
+      port: 80
+      protocol: HTTP
+      hostname: "app.<BASE_DOMAIN>"
+      allowedRoutes:
+        namespaces:
+          from: All
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: juice-shop-route
+  namespace: vulnerable-lab
+  labels:
+    app.kubernetes.io/name: juice-shop
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+spec:
+  hostnames:
+    - "juice-shop.<BASE_DOMAIN>"
+  parentRefs:
+    - name: securekubeops-gateway
+      namespace: alb-infra
+      sectionName: juice-shop-http
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: juice-shop
+          port: 3000
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: securekubeops-route
+  namespace: application
+  labels:
+    app.kubernetes.io/name: secure-kube-ops
+    app.kubernetes.io/part-of: secure-kube-ops
+    securekubeops.io/component: waf
+spec:
+  hostnames:
+    - "app.<BASE_DOMAIN>"
+  parentRefs:
+    - name: securekubeops-gateway
+      namespace: alb-infra
+      sectionName: securekubeops-http
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - name: secure-kube-ops
+          port: 3000
