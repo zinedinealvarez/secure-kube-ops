@@ -76,9 +76,9 @@ Los recursos Kubernetes se agrupan en `k8s/`:
 
 - `application/`: API de referencia.
 - `labs/juice-shop/`: laboratorio vulnerable.
-- `k8s/monitoring/`: Prometheus, Grafana, Pushgateway y dashboards.
-- `k8s/runtime-security/`: Trivy Operator.
-- `k8s/arc/`: localizacion de Actions Runner Controller.
+- `monitoring/`: Prometheus, Grafana, Pushgateway y dashboards.
+- `runtime-security/`: Trivy Operator.
+- `arc/`: localizacion de Actions Runner Controller.
 
 Pushgateway se mantiene como servicio interno. Para enviar metricas del pipeline sin exponerlo publicamente, un runner efimero de ARC ejecuta el job `push-pipeline-metrics` dentro de AKS.
 
