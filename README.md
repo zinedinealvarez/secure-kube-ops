@@ -55,7 +55,7 @@ Instalacion en Kubernetes:
 powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1
 ```
 
-El script puede instalar la aplicacion, Juice Shop, observabilidad, Trivy Operator y, opcionalmente, la capa WAF.
+El script se ejecuta sobre un cluster Kubernetes ya disponible y puede instalar la aplicacion, Juice Shop, observabilidad, Trivy Operator y, opcionalmente, la capa WAF.
 
 ## Pipeline DevSecOps
 
