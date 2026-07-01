@@ -197,7 +197,7 @@ El archivo que se envía es siempre `metrics.prom`. La URL de Pushgateway incluy
 | `Branch Policy` | `securekubeops-branch-policy-results-*` | `securekubeops-branch-policy` |
 | `Publish Image` | `securekubeops-ghcr-publish-results-*` | `securekubeops-publish-image` |
 
-El nombre del `job` se mantiene estable y descriptivo. No se usan como parte del `job` valores variables como commit, `run_id`, fecha o nombre exacto del ZIP.
+El nombre del `job` se mantiene estable y descriptivo. No se usan como parte del `job` valores variables como commit, `run_id`, fecha o nombre exacto del ZIP. El `run_id` se usa como label en las métricas históricas del pipeline para diferenciar ejecuciones dentro del mismo job.
 
 ### Envío automático en AKS
 
@@ -403,21 +403,23 @@ Pushgateway almacena el último valor recibido para cada combinación de job y l
 No se envían:
 
 - commits como labels;
-- `run_id` como label;
 - paquetes;
 - rutas de ficheros;
 - secretos;
 - mensajes de error.
+
+El label `run_id` sí se envía en las métricas históricas del pipeline, como `securekubeops_pipeline_execution_total`, `securekubeops_pipeline_control_total`, `securekubeops_promotion_total` y `securekubeops_supply_chain_artifact`.
 
 Sí se envían como labels de hallazgos de seguridad:
 
 - `id`, como CVE, ID de Trivy config o `check_id` de Semgrep;
 - `severity`;
 - `title`;
-- `description`;
-- `time`, como fecha declarada de generación de la métrica.
+- `description`.
 
 En GitLeaks solo se envía el número de secretos detectados. No se envía el valor del secreto ni su ubicación.
+
+Los hallazgos de seguridad no incluyen `run_id`, ya que se publican en grupos específicos de Pushgateway que se reemplazan en cada ejecución para representar el estado del último análisis.
 
 Cuando varios findings de Semgrep o Trivy comparten los mismos labels, el valor de la muestra representa el número de ocurrencias para evitar métricas duplicadas con el mismo nombre y la misma combinación de labels.
 

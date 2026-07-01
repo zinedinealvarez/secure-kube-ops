@@ -146,27 +146,24 @@ jobs:
       - name: Generate Pre Analysis pipeline metrics
         if: always()
         run: |
-          METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
 
           cat > reports/metrics.prom <<EOF
           # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
           # TYPE securekubeops_pipeline_execution_total counter
-          securekubeops_pipeline_execution_total{workflow="pre_analysis",event="push",branch_type="pre",result="${PIPELINE_RESULT}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_execution_total{workflow="pre_analysis",event="push",branch_type="pre",result="${PIPELINE_RESULT}",run_id="${{ github.run_id }}"} 1
           # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
           # TYPE securekubeops_pipeline_control_total counter
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="gitleaks",category="secret_detection",result="${{ steps.gitleaks.outcome }}",time="${METRIC_TIME}"} 1
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="semgrep_sast",category="sast",result="${{ steps.semgrep_sast.outcome }}",time="${METRIC_TIME}"} 1
-          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_gate.outcome }}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="gitleaks",category="secret_detection",result="${{ steps.gitleaks.outcome }}",run_id="${{ github.run_id }}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="semgrep_sast",category="sast",result="${{ steps.semgrep_sast.outcome }}",run_id="${{ github.run_id }}"} 1
+          securekubeops_pipeline_control_total{workflow="pre_analysis",control="trivy_config",category="iac_scan",result="${{ steps.trivy_config_gate.outcome }}",run_id="${{ github.run_id }}"} 1
           # HELP securekubeops_security_finding_info Security findings exported with scanner metadata for Grafana tables.
           # TYPE securekubeops_security_finding_info gauge
           EOF
 
-          METRIC_TIME="${METRIC_TIME}" \
           node <<'NODE'
           const fs = require('fs');
           const output = 'reports/metrics.prom';
-          const metricTime = process.env.METRIC_TIME;
           const samples = new Map();
 
           function append(line) {
@@ -211,7 +208,6 @@ jobs:
             severity: 'CRITICAL',
             title: 'Secrets detected',
             description: 'Number of potential secrets detected by GitLeaks without exposing matched values.',
-            time: metricTime,
           }, gitleaksCount);
 
           const trivyConfig = readJson('reports/tools/trivy-config.json');
@@ -225,7 +221,6 @@ jobs:
                 severity: String(item.Severity || 'UNKNOWN').toUpperCase(),
                 title: item.Title || item.Message || item.ID || 'Kubernetes misconfiguration',
                 description: item.Description || item.Message || 'Kubernetes configuration finding detected by Trivy.',
-                time: metricTime,
               });
             }
           }
@@ -247,7 +242,6 @@ jobs:
               confidence: metadata.confidence || '',
               impact: metadata.impact || '',
               likelihood: metadata.likelihood || '',
-              time: metricTime,
             });
           }
 
@@ -345,9 +339,31 @@ jobs:
         if: hashFiles('artifact/metrics.prom') != ''
         continue-on-error: true
         run: |
+          history_metrics="${RUNNER_TEMP}/metrics-history.prom"
+          findings_metrics="${RUNNER_TEMP}/metrics-findings.prom"
+
+          grep -v '^# HELP securekubeops_security_finding_info' artifact/metrics.prom \
+            | grep -v '^# TYPE securekubeops_security_finding_info' \
+            | grep -v '^securekubeops_security_finding_info' > "$history_metrics"
+
+          grep -E '^(# HELP securekubeops_security_finding_info|# TYPE securekubeops_security_finding_info|securekubeops_security_finding_info)' artifact/metrics.prom > "$findings_metrics" || true
+
+          if [ -s "$history_metrics" ]; then
+            curl --fail --show-error --silent \
+              --data-binary @"$history_metrics" \
+              http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-pre-analysis/instance/${{ github.run_id }}
+          fi
+
           curl --fail --show-error --silent \
-            --data-binary @artifact/metrics.prom \
-            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-pre-analysis
+            -X DELETE \
+            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-pre-analysis-findings || true
+
+          if [ -s "$findings_metrics" ]; then
+            curl --fail --show-error --silent \
+              -X PUT \
+              --data-binary @"$findings_metrics" \
+              http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-pre-analysis-findings
+          fi
 
       - name: Report missing metrics artifact
         if: hashFiles('artifact/metrics.prom') == ''

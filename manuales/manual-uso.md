@@ -11,7 +11,7 @@ El uso normal del sistema parte del repositorio GitHub:
 3. Si los controles pasan, se abre una Pull Request hacia `main`.
 4. La Pull Request ejecuta política de ramas y validación de imagen.
 5. Tras el merge en `main`, se publica la imagen en GHCR.
-6. La imagen validada se despliega en Kubernetes.
+6. La imagen validada queda disponible para desplegarse en Kubernetes aplicando el manifiesto correspondiente.
 7. Prometheus y Grafana permiten consultar métricas del pipeline y del clúster.
 8. Trivy Operator genera informes de seguridad runtime.
 9. La capa WAF puede activarse para pruebas de protección de entrada.

@@ -55,7 +55,7 @@ Instalacion en Kubernetes:
 powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1
 ```
 
-El script puede instalar la aplicacion, Juice Shop, observabilidad, Trivy Operator y, opcionalmente, la capa WAF.
+El script se ejecuta sobre un cluster Kubernetes ya disponible y puede instalar la aplicacion, Juice Shop, observabilidad, Trivy Operator y, opcionalmente, la capa WAF.
 
 ## Pipeline DevSecOps
 
@@ -76,9 +76,9 @@ Los recursos Kubernetes se agrupan en `k8s/`:
 
 - `application/`: API de referencia.
 - `labs/juice-shop/`: laboratorio vulnerable.
-- `k8s/monitoring/`: Prometheus, Grafana, Pushgateway y dashboards.
-- `k8s/runtime-security/`: Trivy Operator.
-- `k8s/arc/`: localizacion de Actions Runner Controller.
+- `monitoring/`: Prometheus, Grafana, Pushgateway y dashboards.
+- `runtime-security/`: Trivy Operator.
+- `arc/`: localizacion de Actions Runner Controller.
 
 Pushgateway se mantiene como servicio interno. Para enviar metricas del pipeline sin exponerlo publicamente, un runner efimero de ARC ejecuta el job `push-pipeline-metrics` dentro de AKS.
 
