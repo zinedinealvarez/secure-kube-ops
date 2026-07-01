@@ -307,7 +307,7 @@ jobs:
           if [ -s "$history_metrics" ]; then
             curl --fail --show-error --silent \
               --data-binary @"$history_metrics" \
-              http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-image-validation
+              http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-image-validation/instance/${{ github.run_id }}
           fi
 
           curl --fail --show-error --silent \

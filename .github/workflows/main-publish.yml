@@ -196,7 +196,7 @@ jobs:
         run: |
           curl --fail --show-error --silent \
             --data-binary @artifact/metrics.prom \
-            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-publish-image
+            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-publish-image/instance/${{ github.run_id }}
 
       - name: Report missing metrics artifact
         if: hashFiles('artifact/metrics.prom') == ''
