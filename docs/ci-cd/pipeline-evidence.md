@@ -108,7 +108,7 @@ reports/metrics.prom
 
 Estas métricas se conservan como artifact de la ejecución y mantienen un formato compatible con Prometheus text format. Su estructura permite construir paneles agregados en Grafana a partir de los resultados de los pipelines.
 
-Las métricas combinan estado agregado de workflows y controles con hallazgos de seguridad enriquecidos para su visualización en Grafana. Los secretos, commits, `run_id`, rutas de ficheros, líneas, paquetes y valores sensibles permanecen fuera de los labels.
+Las métricas combinan estado agregado de workflows y controles con hallazgos de seguridad enriquecidos para su visualización en Grafana. Las métricas históricas del pipeline usan `run_id` para diferenciar ejecuciones. Los secretos, commits, rutas de ficheros, líneas, paquetes y valores sensibles permanecen fuera de los labels.
 
 ### Resumen de métricas
 
@@ -128,14 +128,14 @@ Las métricas combinan estado agregado de workflows y controles con hallazgos de
 | --- | --- |
 | Finalidad | Contabiliza ejecuciones de workflows para paneles de salud general. |
 | Paneles | Total de ejecuciones, ejecuciones por workflow, porcentaje de éxito/fallo global y porcentaje de éxito/fallo por workflow. |
-| Labels | `workflow`, `event`, `branch_type`, `result`, `time` |
+| Labels | `workflow`, `event`, `branch_type`, `result`, `run_id` |
 | Posibles `workflow` | `pre_analysis`, `image_validation`, `branch_policy`, `publish_image` |
 | Posibles `event` | `push`, `pull_request` |
 | Posibles `branch_type` | `pre`, `main`, `pull_request` |
 | Posibles `result` | `success`, `failure` |
 | Valor | `1` por ejecución del workflow. |
 | Origen | Resultado agregado calculado a partir de los outcomes de los controles principales del workflow. |
-| Cardinalidad/privacidad | Riesgo bajo. No usa `commit`, `run_id` ni nombres de ramas arbitrarias como labels. El label `time` identifica la fecha declarada de generación de la métrica. |
+| Cardinalidad/privacidad | Riesgo bajo. No usa `commit` ni nombres de ramas arbitrarias como labels. El label `run_id` identifica la ejecución de GitHub Actions y permite diferenciar ejecuciones del mismo workflow. |
 
 Generación por workflow:
 
@@ -152,7 +152,7 @@ Generación por workflow:
 | --- | --- |
 | Finalidad | Contabiliza el resultado de cada control ejecutado. |
 | Paneles | Controles que más fallan, fallos por categoría y evolución de estabilidad por step. |
-| Labels | `workflow`, `control`, `category`, `result`, `time` |
+| Labels | `workflow`, `control`, `category`, `result`, `run_id` |
 | Posibles `result` | `success`, `failure`, `skipped`, `cancelled` |
 | Valor | `1` por control ejecutado. |
 | Origen | `${{ steps.<id>.outcome }}` de cada step con identificador. |
@@ -181,10 +181,10 @@ En **Publish Image**, `ghcr_login` queda con `result="skipped"` cuando no existe
 | --- | --- |
 | Finalidad | Registra hallazgos de seguridad como muestras consultables en Grafana. |
 | Paneles | Secretos detectados, vulnerabilidades por CVE, misconfigurations Kubernetes, findings SAST por CWE y tablas de detalle. |
-| Labels | `workflow`, `tool`, `scan_type`, `id`, `severity`, `title`, `description`, `time` y, para Semgrep, `cwe`, `owasp`, `confidence`, `impact`, `likelihood`. |
+| Labels | `workflow`, `tool`, `scan_type`, `id`, `severity`, `title`, `description` y, para Semgrep, `cwe`, `owasp`, `confidence`, `impact`, `likelihood`. |
 | Valor | Número de ocurrencias para esa combinación de labels. Si el finding es único, el valor es `1`. En GitLeaks, el valor es el número total de secretos detectados. |
 | Origen | Informes JSON generados en `reports/tools/`. |
-| Cardinalidad/privacidad | Riesgo controlado para el TFG. No se exportan secretos, rutas, líneas, paquetes, commits ni `run_id`. |
+| Cardinalidad/privacidad | Riesgo controlado para el TFG. No se exportan secretos, rutas, líneas, paquetes, commits ni `run_id`. Al no incluir `run_id`, estos hallazgos representan el último análisis publicado, no un histórico acumulado. |
 
 Generación por workflow:
 
@@ -201,7 +201,7 @@ Generación por workflow:
 | --- | --- |
 | Finalidad | Contabiliza eventos de promoción del flujo DevSecOps. |
 | Paneles | PRs permitidas o bloqueadas, publicaciones de imagen en GHCR y evolución de promoción hacia producción. |
-| Labels | `stage`, `result`, `time` |
+| Labels | `stage`, `result`, `run_id` |
 | Valor | `1` por evento de promoción. |
 | Cardinalidad/privacidad | Riesgo bajo. `stage` y `result` son listas cerradas. |
 
@@ -218,7 +218,7 @@ Eventos registrados:
 | --- | --- |
 | Finalidad | Indica si se ha generado una evidencia de cadena de suministro. |
 | Paneles | Porcentaje de imágenes con SBOM y ejecuciones donde el SBOM está disponible. |
-| Labels | `workflow`, `artifact_type`, `result`, `time` |
+| Labels | `workflow`, `artifact_type`, `result`, `run_id` |
 | Posibles `artifact_type` | `sbom_cyclonedx` |
 | Posibles `result` | `generated`, `missing` |
 | Valor | `1` cuando se registra el estado del artifact. |

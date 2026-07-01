@@ -14,7 +14,7 @@ Las métricas se generan dentro de los artifacts de GitHub Actions, se envían a
 | `securekubeops_promotion_total` | `counter` | `Branch Policy`, `Publish Image` | Promoción hacia `main` y GHCR. |
 | `securekubeops_supply_chain_artifact` | `gauge` | `Image Validation` | Generación del SBOM CycloneDX. |
 
-Todas las métricas incluyen el label `time` con la fecha de generación de la métrica en formato UTC, por ejemplo `2026-05-14T12:30:00Z`.
+Las métricas históricas del pipeline incluyen el label `run_id`, que identifica la ejecución de GitHub Actions que generó la muestra. Las métricas de hallazgos de seguridad no incluyen `run_id`, porque representan el estado del último análisis y no un histórico acumulado de hallazgos.
 
 ## Paneles recomendados
 
@@ -86,9 +86,9 @@ La métrica de GitLeaks solo exporta el número de secretos detectados. No expor
 | --- | --- |
 | Pregunta | ¿Qué CVE aparecen en la imagen Docker candidata? |
 | Tipo de panel | Table |
-| Query | `sum by (id, severity, title, description, time) (securekubeops_security_finding_info{tool="trivy",scan_type="image"})` |
-| Visualización | Tabla con `id`, `severity`, `title`, `description` y `time`. |
-| Labels clave | `id`, `severity`, `title`, `description`, `time` |
+| Query | `securekubeops_security_finding_info{tool="trivy",scan_type="image"}` |
+| Visualización | Tabla con `id`, `severity`, `title` y `description`. |
+| Labels clave | `id`, `severity`, `title`, `description` |
 
 ### 8. Misconfigurations Kubernetes por ID
 
@@ -96,9 +96,9 @@ La métrica de GitLeaks solo exporta el número de secretos detectados. No expor
 | --- | --- |
 | Pregunta | ¿Qué problemas detecta Trivy config en los manifiestos Kubernetes? |
 | Tipo de panel | Table |
-| Query | `sum by (id, severity, title, description, time) (securekubeops_security_finding_info{tool="trivy",scan_type="config"})` |
+| Query | `securekubeops_security_finding_info{tool="trivy",scan_type="config"}` |
 | Visualización | Tabla de IDs de Trivy config, severidad y descripción. |
-| Labels clave | `id`, `severity`, `title`, `description`, `time` |
+| Labels clave | `id`, `severity`, `title`, `description` |
 
 ### 9. Findings SAST por CWE
 
@@ -116,9 +116,9 @@ La métrica de GitLeaks solo exporta el número de secretos detectados. No expor
 | --- | --- |
 | Pregunta | ¿Qué reglas SAST han generado findings? |
 | Tipo de panel | Table |
-| Query | `sum by (id, severity, title, description, cwe, owasp, confidence, impact, likelihood, time) (securekubeops_security_finding_info{tool="semgrep",scan_type="sast"})` |
+| Query | `securekubeops_security_finding_info{tool="semgrep",scan_type="sast"}` |
 | Visualización | Tabla con regla, severidad, clase de vulnerabilidad, CWE, OWASP e información de confianza. |
-| Labels clave | `id`, `severity`, `title`, `description`, `cwe`, `owasp`, `confidence`, `impact`, `likelihood`, `time` |
+| Labels clave | `id`, `severity`, `title`, `description`, `cwe`, `owasp`, `confidence`, `impact`, `likelihood` |
 
 ### 11. Pull Requests permitidas o bloqueadas
 
@@ -150,23 +150,23 @@ La métrica de GitLeaks solo exporta el número de secretos detectados. No expor
 | Visualización | Conteo de `generated` y `missing`. |
 | Labels clave | `artifact_type`, `result` |
 
-### 14. Tabla de ejecuciones por fecha declarada
+### 14. Tabla de ejecuciones por ejecución
 
 | Campo | Valor |
 | --- | --- |
-| Pregunta | ¿Cuándo se generaron las métricas de cada workflow? |
+| Pregunta | ¿Qué ejecuciones de GitHub Actions han generado métricas del pipeline? |
 | Tipo de panel | Table |
-| Query | `sum by (workflow, result, time) (securekubeops_pipeline_execution_total)` |
-| Visualización | Tabla con workflow, resultado y label `time`. |
-| Labels clave | `workflow`, `result`, `time` |
+| Query | `sum by (workflow, result, run_id) (securekubeops_pipeline_execution_total)` |
+| Visualización | Tabla con workflow, resultado y `run_id`. |
+| Labels clave | `workflow`, `result`, `run_id` |
 
-El label `time` identifica la fecha declarada de generación dentro del artifact. El eje temporal real de Prometheus sigue siendo el momento en el que Prometheus scrapea Pushgateway.
+El label `run_id` identifica la ejecución concreta de GitHub Actions. El eje temporal real de Prometheus sigue siendo el momento en el que Prometheus scrapea Pushgateway.
 
 ## Organización del dashboard
 
 | Fila | Paneles |
 | --- | --- |
-| Salud general | Estado global, ejecuciones por workflow, tabla de ejecuciones por fecha declarada. |
+| Salud general | Estado global, ejecuciones por workflow, tabla de ejecuciones por ejecución. |
 | Controles | Resultado por control, fallos por categoría. |
 | Seguridad | Secretos detectados, hallazgos por herramienta y severidad. |
 | Detalle técnico | Vulnerabilidades de imagen por CVE, misconfigurations Kubernetes, findings SAST detallados. |
@@ -178,8 +178,8 @@ El label `time` identifica la fecha declarada de generación dentro del artifact
 - `securekubeops_security_finding_info` genera una muestra por combinación de labels. Si varios findings comparten la misma combinación, el valor de la muestra refleja el número de ocurrencias.
 - GitLeaks genera una muestra agregada con el número de secretos detectados.
 - Los secretos no se exportan como labels.
-- Los valores `commit`, `run_id`, paquete, ruta de fichero, línea y rama exacta permanecen en `metadata.json` o en los JSON técnicos, no en Prometheus.
-- `time` se utiliza como label para identificar la fecha declarada de generación de la métrica.
+- Los valores `commit`, paquete, ruta de fichero, línea y rama exacta permanecen en `metadata.json` o en los JSON técnicos, no en Prometheus.
+- `run_id` se utiliza solo en métricas históricas del pipeline para diferenciar ejecuciones.
 
 ## Fuentes
 

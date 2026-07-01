@@ -77,7 +77,6 @@ jobs:
       - name: Generate Branch Policy pipeline metrics
         if: always()
         run: |
-          METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           PIPELINE_RESULT="success"
           PROMOTION_RESULT="allowed"
           if [ "${{ steps.branch_policy.outcome }}" = "failure" ]; then
@@ -88,13 +87,13 @@ jobs:
           cat > reports/metrics.prom <<EOF
           # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
           # TYPE securekubeops_pipeline_execution_total counter
-          securekubeops_pipeline_execution_total{workflow="branch_policy",event="pull_request",branch_type="pull_request",result="${PIPELINE_RESULT}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_execution_total{workflow="branch_policy",event="pull_request",branch_type="pull_request",result="${PIPELINE_RESULT}",run_id="${{ github.run_id }}"} 1
           # HELP securekubeops_pipeline_control_total Pipeline control executions grouped by control, category and result.
           # TYPE securekubeops_pipeline_control_total counter
-          securekubeops_pipeline_control_total{workflow="branch_policy",control="branch_policy",category="branch_policy",result="${{ steps.branch_policy.outcome }}",time="${METRIC_TIME}"} 1
+          securekubeops_pipeline_control_total{workflow="branch_policy",control="branch_policy",category="branch_policy",result="${{ steps.branch_policy.outcome }}",run_id="${{ github.run_id }}"} 1
           # HELP securekubeops_promotion_total Promotion-related events in the DevSecOps flow.
           # TYPE securekubeops_promotion_total counter
-          securekubeops_promotion_total{stage="branch_policy",result="${PROMOTION_RESULT}",time="${METRIC_TIME}"} 1
+          securekubeops_promotion_total{stage="branch_policy",result="${PROMOTION_RESULT}",run_id="${{ github.run_id }}"} 1
           EOF
 
       - name: Generate Branch Policy HTML report
