@@ -1,67 +1,60 @@
-# Manual de instalación
+# Manual de instalacion
 
-Este manual describe cómo instalar SecureKubeOps sobre un clúster Kubernetes ya disponible. La instalación despliega la aplicación de referencia, OWASP Juice Shop, observabilidad con Prometheus/Grafana/Pushgateway y seguridad runtime con Trivy Operator.
+Este manual indica los pasos para instalar SecureKubeOps sobre un cluster Kubernetes ya creado. Los scripts no crean el cluster desde cero: instalan la aplicacion de referencia, el laboratorio vulnerable, observabilidad, seguridad runtime y, opcionalmente, la capa WAF de Azure.
 
-La capa WAF sobre Azure se instala de forma opcional, ya que crea recursos específicos de Azure y puede generar coste.
+La capa WAF debe desplegarse solo durante ventanas de prueba, porque crea recursos gestionados en Azure que pueden generar coste.
 
-## Alcance de la instalación
+## 1. Comprobar herramientas
 
-SecureKubeOps se despliega sobre un clúster Kubernetes previamente disponible. El objetivo de los scripts incluidos en este manual no es aprovisionar toda la infraestructura cloud desde cero, sino instalar y configurar sobre el clúster los componentes necesarios para ejecutar la solución.
+Ejecutar:
 
-En concreto, el script de instalación permite desplegar la aplicación de referencia, el laboratorio vulnerable, los componentes de observabilidad, la seguridad en tiempo de ejecución y, opcionalmente, la capa WAF. Para ello, la persona que realiza la instalación debe tener configurado un contexto `kubectl` válido apuntando al clúster donde se quiere desplegar el sistema.
+```powershell
+kubectl version --client
+helm version
+```
 
-El flujo de GitHub Actions construye y publica imágenes en GitHub Container Registry cuando se integran cambios en la rama principal. Sin embargo, la ejecución de una nueva imagen en Kubernetes depende del manifiesto de despliegue aplicado en el clúster. Por tanto, para desplegar una versión concreta, dicha imagen debe estar referenciada en el `Deployment` correspondiente y aplicarse sobre Kubernetes.
+Si se va a instalar el WAF, comprobar tambien:
 
-## Requisitos previos
+```powershell
+az version
+az account show -o table
+```
 
-Antes de ejecutar los scripts es necesario disponer de:
+## 2. Comprobar conexion al cluster
 
-- Un clúster Kubernetes o AKS creado y accesible.
-- `kubectl` instalado y configurado contra el clúster correcto.
-- Permisos para crear y modificar recursos Kubernetes como namespaces, deployments, services, secrets, configmaps y recursos de observabilidad.
-- Helm instalado, ya que algunos componentes se despliegan mediante charts.
-- Credenciales de lectura de GitHub Container Registry si la imagen de la aplicación es privada.
-- Azure CLI autenticado y permisos sobre la suscripción de Azure, únicamente si se va a desplegar la capa WAF.
-
-Herramientas necesarias:
-
-| Herramienta | Uso |
-| --- | --- |
-| `kubectl` | Aplicar manifiestos y comprobar recursos del clúster. |
-| `helm` | Instalar Prometheus, Grafana, Pushgateway y Trivy Operator. |
-| `az` | Solo necesario si se despliega la capa WAF en Azure. |
-| PowerShell | Ejecutar el script de instalación. |
-
-Antes de instalar, comprobar que `kubectl` apunta al clúster correcto:
+Ejecutar:
 
 ```powershell
 kubectl config current-context
 kubectl get nodes
 ```
 
-Antes de continuar, debe verificarse que los nodos corresponden al clúster sobre el que se quiere instalar SecureKubeOps.
+Resultado esperado:
 
-## Variables necesarias
+- `kubectl` muestra el contexto correcto.
+- Los nodos aparecen en estado `Ready`.
 
-Si la imagen de GHCR es privada, definir credenciales de lectura:
+## 3. Definir variables necesarias
+
+Si la imagen de GHCR es privada:
 
 ```powershell
 $env:GHCR_USERNAME="TU_USUARIO_GITHUB"
 $env:GHCR_TOKEN="TOKEN_CON_READ_PACKAGES"
 ```
 
-Para instalar observabilidad, definir las credenciales de Grafana. El chart está configurado para leerlas desde un Secret de Kubernetes:
+Para Grafana:
 
 ```powershell
 $env:GRAFANA_ADMIN_USER="admin"
-$env:GRAFANA_ADMIN_PASSWORD="CONTRASEÑA_LOCAL"
+$env:GRAFANA_ADMIN_PASSWORD="CONTRASENA_LOCAL"
 ```
 
-Estas variables se definen en la terminal y no se guardan en el repositorio.
+Estas variables solo viven en la terminal actual y no se guardan en el repositorio.
 
-## Instalación completa sin WAF
+## 4. Instalar SecureKubeOps sin WAF
 
-Ejecutar desde la raíz del repositorio:
+Desde la raiz del repositorio:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1
@@ -69,58 +62,27 @@ powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeop
 
 Este comando instala:
 
-1. Namespace, Deployment y Service de la aplicación de referencia.
-2. OWASP Juice Shop como laboratorio vulnerable.
-3. Prometheus, Grafana y Pushgateway.
-4. Dashboards versionados.
-5. Trivy Operator y dashboard de seguridad runtime.
+1. Aplicacion de referencia en `application`.
+2. OWASP Juice Shop en `vulnerable-lab`.
+3. Prometheus, Grafana y Pushgateway en `monitoring`.
+4. Dashboards de Grafana.
+5. Trivy Operator en `runtime-security`.
 
-## Instalación por partes
-
-Solo aplicación de referencia:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1 -SkipJuiceShop -SkipMonitoring -SkipRuntimeSecurity
-```
-
-Sin seguridad runtime:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1 -SkipRuntimeSecurity
-```
-
-Sin actualizar repositorios Helm:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1 -SkipHelmRepoUpdate
-```
-
-## Instalación con WAF
-
-La capa WAF se debe desplegar solo cuando se vayan a realizar pruebas:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1 -IncludeWaf
-```
-
-Internamente, este modo ejecuta:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\azure-waf\scripts\deploy-waf.ps1
-```
-
-El detalle de esta capa está en `azure-waf/README.md` y `azure-waf/deployment-runbook.md`.
-
-## Comprobaciones tras la instalación
-
-Comprobar recursos principales:
+Comprobar:
 
 ```powershell
 kubectl get pods -A
 kubectl get svc -A
 ```
 
-Comprobar aplicación de referencia:
+Resultado esperado:
+
+- Los pods principales aparecen en `Running`.
+- Existen los namespaces `application`, `vulnerable-lab`, `monitoring` y `runtime-security`.
+
+## 5. Probar la aplicacion de referencia
+
+Abrir un port-forward:
 
 ```powershell
 kubectl port-forward -n application service/secure-kube-ops 3000:3000
@@ -132,7 +94,15 @@ En otra terminal:
 Invoke-WebRequest -UseBasicParsing -Uri http://localhost:3000/health
 ```
 
-Comprobar Juice Shop:
+Resultado esperado:
+
+```json
+{"status":"ok"}
+```
+
+## 6. Probar Juice Shop
+
+Abrir un port-forward:
 
 ```powershell
 kubectl port-forward -n vulnerable-lab service/juice-shop 3001:3000
@@ -144,7 +114,13 @@ Abrir:
 http://localhost:3001
 ```
 
-Comprobar Grafana:
+Resultado esperado:
+
+- La interfaz de OWASP Juice Shop carga correctamente.
+
+## 7. Probar Grafana
+
+Abrir un port-forward:
 
 ```powershell
 kubectl port-forward -n monitoring service/monitoring-grafana 3000:80
@@ -156,16 +132,182 @@ Abrir:
 http://localhost:3000
 ```
 
-## Limpieza del WAF
+Resultado esperado:
 
-Al terminar las pruebas WAF, eliminar esa capa para controlar costes:
+- Grafana carga.
+- Existen dashboards dentro de la carpeta `SecureKubeOps`.
+
+## 8. Instalar el WAF
+
+Antes de instalar el WAF, comprobar que la aplicacion y Juice Shop funcionan:
+
+```powershell
+kubectl get pods -n application
+kubectl get pods -n vulnerable-lab
+```
+
+Si solo se quiere instalar la capa WAF:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\azure-waf\scripts\deploy-waf.ps1
+```
+
+Si se quiere instalar todo, incluyendo WAF, desde el script general:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\manuales\scripts\install-securekubeops.ps1 -IncludeWaf
+```
+
+Si el entorno usa otros nombres, indicar parametros:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\azure-waf\scripts\deploy-waf.ps1 `
+  -ResourceGroup "rg-securekubeops-lab" `
+  -AksName "aks-securekubeops-lab" `
+  -Location "westeurope" `
+  -BaseDomain "securekubeops.local" `
+  -VnetName "aks-vnet-10084315" `
+  -AlbSubnetName "aks-appgateway"
+```
+
+Resultado esperado:
+
+- Se crea el namespace `alb-infra`.
+- Se crea el recurso `ApplicationLoadBalancer`.
+- Se crea el `Gateway`.
+- Se crean las `HTTPRoute`.
+- Se crean las asociaciones `WebApplicationFirewallPolicy`.
+
+## 9. Comprobar el WAF
+
+Ejecutar:
+
+```powershell
+kubectl get applicationloadbalancer -n alb-infra
+kubectl get gateway -n alb-infra
+kubectl get httproute -A
+kubectl get webapplicationfirewallpolicy -A
+```
+
+Resultado esperado:
+
+- El `ApplicationLoadBalancer` aparece con `DEPLOYMENT=True`.
+- El `Gateway` aparece con `PROGRAMMED=True`.
+- Las `WebApplicationFirewallPolicy` aparecen con `DEPLOYMENT=True`.
+
+Obtener el FQDN:
+
+```powershell
+$fqdn = kubectl get gateway securekubeops-gateway -n alb-infra -o jsonpath="{.status.addresses[0].value}"
+$fqdn
+```
+
+Probar la aplicacion:
+
+```powershell
+Invoke-WebRequest `
+  -UseBasicParsing `
+  -Uri "http://$fqdn/health" `
+  -Headers @{ Host = "app.securekubeops.local" }
+```
+
+Probar Juice Shop:
+
+```powershell
+Invoke-WebRequest `
+  -UseBasicParsing `
+  -Uri "http://$fqdn/" `
+  -Headers @{ Host = "juice-shop.securekubeops.local" }
+```
+
+Resultado esperado:
+
+- La aplicacion responde `HTTP 200`.
+- Juice Shop responde `HTTP 200`.
+
+## 10. Abrir las aplicaciones por navegador usando el WAF
+
+Resolver el FQDN del Gateway:
+
+```powershell
+nslookup $fqdn
+```
+
+Abrir PowerShell como administrador y ejecutar:
+
+```powershell
+notepad "$env:SystemRoot\System32\drivers\etc\hosts"
+```
+
+En el archivo abierto, anadir al final las siguientes lineas, sustituyendo `<IP_DEL_GATEWAY>` por una de las direcciones IP devueltas por `nslookup`:
+
+```text
+<IP_DEL_GATEWAY> app.securekubeops.local
+<IP_DEL_GATEWAY> juice-shop.securekubeops.local
+```
+
+Guardar el archivo y limpiar la cache DNS:
+
+```powershell
+ipconfig /flushdns
+```
+
+Abrir:
+
+```text
+http://app.securekubeops.local/health
+http://juice-shop.securekubeops.local/
+```
+
+## 11. Borrar el WAF al terminar
+
+Cuando terminen las pruebas:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\azure-waf\scripts\delete-waf.ps1 -DeleteGeneratedManifests -DeleteLogAnalyticsWorkspace
 ```
 
-Este comando no para AKS. Para parar AKS se usa el comando operativo habitual de Azure:
+Este comando elimina la capa WAF y los recursos asociados, pero no elimina:
+
+- el cluster AKS;
+- la aplicacion;
+- Juice Shop;
+- Prometheus;
+- Grafana;
+- Trivy Operator.
+
+Comprobar que no quedan recursos WAF activos en Kubernetes:
+
+```powershell
+kubectl get applicationloadbalancer,gateway,httproute,healthcheckpolicy,webapplicationfirewallpolicy -A
+```
+
+Comprobar que no queda la WAF Policy en Azure:
+
+```powershell
+az network application-gateway waf-policy list `
+  --resource-group rg-securekubeops-lab `
+  -o table
+```
+
+Si no se va a seguir trabajando, parar AKS:
 
 ```powershell
 az aks stop --resource-group rg-securekubeops-lab --name aks-securekubeops-lab
+```
+
+Comprobar que el cluster ha quedado parado:
+
+```powershell
+az aks show `
+  --resource-group rg-securekubeops-lab `
+  --name aks-securekubeops-lab `
+  --query "powerState.code" `
+  -o tsv
+```
+
+Resultado esperado:
+
+```text
+Stopped
 ```

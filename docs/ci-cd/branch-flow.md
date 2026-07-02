@@ -1,57 +1,55 @@
 # Flujo de ramas
 
-El repositorio de SecureKubeOps utiliza un flujo de ramas simple basado en ramas de validación con prefijo `pre-` y una rama de producción `main`.
+El repositorio de SecureKubeOps utiliza un flujo de ramas basado en ramas de validacion con prefijo `pre-` y una rama principal `main`.
 
-- `pre-*`: ramas de trabajo y validación. En estas ramas se trabaja directamente y se permite hacer push.
-- `dependabot/*`: ramas automáticas creadas por Dependabot para actualizar dependencias. Solo se aceptan cuando el actor de la Pull Request es `dependabot[bot]`.
-- `main`: rama de producción. Esta rama está protegida mediante una Branch protection rule.
+- `pre-*`: ramas de trabajo y validacion. En estas ramas se trabaja directamente y se permite hacer push.
+- `dependabot/*`: ramas automaticas creadas por Dependabot para actualizar dependencias, acciones de GitHub Actions e imagenes base.
+- `main`: rama principal del proyecto. Solo se actualiza mediante Pull Request.
 
 ## Flujo de trabajo
 
-El flujo operativo funciona así:
+1. Crear una rama con prefijo `pre-`, por ejemplo `pre-waf` o `pre-observability`.
+2. Introducir los cambios y hacer push a la rama `pre-*`.
+3. Revisar el resultado del workflow `Pre Analysis`.
+4. Abrir una Pull Request desde la rama `pre-*` hacia `main`.
+5. Esperar a que se ejecuten los checks de Pull Request.
+6. Integrar la Pull Request cuando los checks obligatorios esten en verde.
+7. Tras el merge en `main`, se ejecuta el workflow de publicacion de imagen.
 
-1. Los cambios se hacen directamente en una rama con prefijo `pre-`, por ejemplo `pre-observability` o `pre-pipeline`.
-2. Se hace push a esa rama `pre-*`.
-3. Se abre una Pull Request desde la rama `pre-*` hacia `main`.
-4. `main` solo se actualiza mediante Pull Request.
-5. El merge a `main` se realiza cuando pasan los checks obligatorios de GitHub Actions.
+Las Pull Requests de Dependabot siguen el mismo control de entrada a `main`, pero se permiten desde ramas `dependabot/*`. La excepcion queda limitada por actor: la rama solo se acepta si la Pull Request la abre `dependabot[bot]`.
 
-Las Pull Requests de Dependabot siguen el mismo control de entrada a `main`, pero se permiten desde ramas `dependabot/*` porque no puede configurarse Dependabot para usar el prefijo `pre-` del flujo manual del proyecto. La excepción queda limitada por actor: la rama solo se acepta si la Pull Request la abre `dependabot[bot]`.
+## Proteccion de `main`
 
-## Protección de `main`
+La rama `main` se protege mediante una Branch protection rule.
 
-La rama `main` está protegida mediante una Branch protection rule.
-
-La regla está configurada con:
+Configuracion aplicada:
 
 - Pull Request obligatoria antes del merge.
-- Aprobaciones requeridas: desactivado.
 - Status checks obligatorios antes del merge.
-- Rama actualizada antes del merge: desactivado.
 - Allow force pushes: desactivado.
 - Allow deletions: desactivado.
 
-Checks obligatorios configurados:
+Checks obligatorios:
 
 ```text
 Image Validation
 Validate source branch
 ```
 
-La opción equivalente a `Require branches to be up to date before merging` queda desactivada. Durante la validación del flujo generaba bloqueos del tipo `This branch is out-of-date with the base branch`, especialmente después de merges que actualizaban la rama base y dejaban la Pull Request pendiente de sincronización. El control de entrada a `main` se mantiene mediante Pull Request obligatoria y checks requeridos en verde.
+El control de entrada a `main` se basa en Pull Request obligatoria y checks requeridos en verde. De esta forma, los cambios manuales entran desde ramas `pre-*` y las actualizaciones automaticas entran desde ramas `dependabot/*`.
 
-## Validación del bloqueo de push directo
+## Validacion rapida
 
-El bloqueo de push directo a `main` se validó correctamente. Al intentar hacer push directo a la rama protegida, GitHub devolvió el siguiente error:
+Para comprobar que el flujo esta activo:
 
-```text
-GH006: Protected branch update failed for refs/heads/main.
-Changes must be made through a pull request.
-2 of 2 required status checks are expected.
-```
+1. Crear una rama `pre-*`.
+2. Hacer un cambio sencillo.
+3. Subir la rama.
+4. Abrir una Pull Request hacia `main`.
+5. Comprobar que se ejecutan los checks obligatorios.
 
-Este resultado confirma que `main` queda protegida y que los cambios entran mediante Pull Request desde ramas con prefijo `pre-`, o desde ramas `dependabot/*` generadas por `dependabot[bot]`.
+Si se intenta modificar `main` directamente, GitHub debe rechazar el push porque la rama esta protegida.
 
-## Nota sobre disponibilidad de Branch protection
+## Nota sobre disponibilidad
 
-Para que la protección de ramas se aplicase en el entorno del TFG, el repositorio funcionó en modo público o con un plan de GitHub compatible con Branch protection en repositorios privados.
+Branch protection depende de la configuracion y del plan disponible en GitHub. En este proyecto se usa una configuracion compatible con los controles requeridos por SecureKubeOps.

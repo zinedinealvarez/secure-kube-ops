@@ -241,11 +241,10 @@ kubectl annotate webapplicationfirewallpolicy juice-shop-waf-policy `
 if (-not $SkipDiagnostics) {
   Write-Host "Ensuring Log Analytics workspace and diagnostic settings..."
 
-  $WorkspaceId = az monitor log-analytics workspace show `
+  $WorkspaceId = az monitor log-analytics workspace list `
     --resource-group $ResourceGroup `
-    --workspace-name $LogAnalyticsWorkspaceName `
-    --query id `
-    -o tsv 2>$null
+    --query "[?name=='$LogAnalyticsWorkspaceName'].id | [0]" `
+    -o tsv
 
   if ([string]::IsNullOrWhiteSpace($WorkspaceId)) {
     az monitor log-analytics workspace create `
@@ -269,10 +268,9 @@ if (-not $SkipDiagnostics) {
     -o tsv
   $AlbResourceId = Get-RequiredValue "AlbResourceId" $AlbResourceId
 
-  $ExistingDiagnosticSetting = az monitor diagnostic-settings show `
-    --name $DiagnosticSettingName `
+  $ExistingDiagnosticSetting = az monitor diagnostic-settings list `
     --resource $AlbResourceId `
-    --query id `
+    --query "[?name=='$DiagnosticSettingName'].id | [0]" `
     -o tsv 2>$null
 
   if ([string]::IsNullOrWhiteSpace($ExistingDiagnosticSetting)) {
