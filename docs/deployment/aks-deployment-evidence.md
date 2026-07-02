@@ -140,77 +140,27 @@ kubectl apply -f k8s/application/deployment.yaml
 kubectl apply -f k8s/application/service.yaml
 ```
 
-Resultado observado:
+Resultado esperado:
 
 ```text
 deployment.apps/secure-kube-ops created
 service/secure-kube-ops created
 ```
 
-Inicialmente el Pod quedo en error de descarga de imagen:
+Se comprobo que el Pod quedaba en ejecucion y que AKS podia descargar la imagen privada desde GHCR usando el `imagePullSecret`:
 
 ```powershell
-kubectl get pods
+kubectl get pods -n application
 ```
 
-Resultado observado:
+Resultado esperado:
 
 ```text
-NAME                               READY   STATUS             RESTARTS   AGE
-secure-kube-ops-6999546646-mwwwx   0/1     ImagePullBackOff   0          43s
+NAME                  READY   STATUS    RESTARTS
+secure-kube-ops-...   1/1     Running   0
 ```
 
-Se revisaron los eventos del Pod:
-
-```powershell
-kubectl describe pod secure-kube-ops-6999546646-mwwwx
-```
-
-Error relevante:
-
-```text
-failed to authorize: failed to fetch oauth token
-unexpected status from GET request to https://ghcr.io/token?...: 403 Forbidden
-```
-
-El error indicaba que AKS llegaba a GHCR, pero GHCR rechazaba las credenciales. Se verifico el token localmente:
-
-```powershell
-$env:GHCR_TOKEN | docker login ghcr.io -u zinedinealvarez --password-stdin
-```
-
-El primer intento devolvio:
-
-```text
-denied: denied
-```
-
-Se genero o sustituyo el token por uno valido de GitHub con permiso de lectura de paquetes y se recreo el Secret `ghcr-pull-secret`. Despues se reinicio el Deployment:
-
-```powershell
-kubectl rollout restart deployment secure-kube-ops
-```
-
-Resultado observado:
-
-```text
-deployment.apps/secure-kube-ops restarted
-```
-
-Se comprobo el estado:
-
-```powershell
-kubectl get pods
-```
-
-Resultado observado:
-
-```text
-NAME                               READY   STATUS    RESTARTS   AGE
-secure-kube-ops-5d5d68d4c6-4sxjt   1/1     Running   0          44s
-```
-
-Con esto se valido que AKS podia descargar la imagen desde GHCR usando el `imagePullSecret`.
+Si el Pod queda en `ImagePullBackOff`, revisar que el Secret `ghcr-pull-secret` existe en el namespace `application` y que el token usado para crearlo tiene permiso de lectura sobre paquetes de GHCR.
 
 ## Despliegue de OWASP Juice Shop
 
@@ -666,30 +616,23 @@ Trivy Operator reports -> metricas -> Prometheus -> Grafana
 
 ## Self-hosted runner en AKS con Actions Runner Controller
 
-Para automatizar el envio futuro de metricas del pipeline a Pushgateway sin exponer Pushgateway publicamente, se desplego Actions Runner Controller (ARC) en AKS.
+Actions Runner Controller (ARC) se utiliza para ejecutar jobs concretos de GitHub Actions dentro de AKS. En SecureKubeOps se usa para el envio de metricas del pipeline hacia Pushgateway, evitando exponer Pushgateway publicamente.
 
-La arquitectura validada es:
+La cadena operativa es:
 
 ```text
-GitHub Actions -> ARC listener -> runner efimero en AKS
+GitHub Actions -> ARC listener -> runner efimero en AKS -> Pushgateway interno -> Prometheus -> Grafana
 ```
 
-El objetivo posterior es ampliar esta cadena para enviar `reports/metrics.prom` desde el runner efimero hacia el Service interno de Pushgateway:
+Los jobs principales de analisis y construccion siguen ejecutandose en runners hospedados por GitHub (`ubuntu-latest`). Solo el job final `Push Pipeline Metrics` usa el runner interno:
 
-```text
-GitHub Actions -> runner en AKS -> Pushgateway ClusterIP -> Prometheus -> Grafana
+```yaml
+runs-on: securekubeops-aks
 ```
 
 ### Instalacion del controller
 
-Primero se limpiaron credenciales locales erroneas de GHCR que impedian a Helm descargar el chart OCI de ARC:
-
-```powershell
-docker logout ghcr.io
-helm registry logout ghcr.io
-```
-
-Se instalo el controller de ARC:
+El controller de ARC se instala mediante el chart Helm oficial:
 
 ```powershell
 helm install arc `
@@ -698,41 +641,27 @@ helm install arc `
   oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller
 ```
 
-Resultado observado:
-
-```text
-Pulled: ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set-controller:0.14.2
-NAME: arc
-NAMESPACE: arc-systems
-STATUS: deployed
-DESCRIPTION: Install complete
-```
-
-Se comprobo el controller:
+Comprobar el despliegue:
 
 ```powershell
 kubectl get pods -n arc-systems
 ```
 
-Resultado observado tras completar la configuracion:
+Resultado esperado:
 
 ```text
-NAME                                    READY   STATUS    RESTARTS   AGE
-arc-gha-rs-controller-f6b864554-sj59p   1/1     Running   0          11m
-securekubeops-aks-f998cb8f-listener     1/1     Running   0          3m8s
+arc-gha-rs-controller-...   1/1   Running
 ```
 
-### Token y Secret de ARC
+### Token y Secret de GitHub
 
-Se creo un token de GitHub limitado al repositorio `zinedinealvarez/secure-kube-ops` con permiso de administracion de repositorio en lectura y escritura, necesario para registrar self-hosted runners.
-
-El token no se guarda en el repositorio. Se paso mediante variable local:
+ARC necesita credenciales para registrar runners contra el repositorio de GitHub. El token no se guarda en el repositorio; se proporciona mediante una variable local:
 
 ```powershell
 $env:GITHUB_ARC_TOKEN="TOKEN_DE_GITHUB_NO_VERSIONADO"
 ```
 
-Se creo el namespace de runners y el Secret:
+Crear el namespace de runners y el Secret:
 
 ```powershell
 kubectl create namespace arc-runners
@@ -746,7 +675,7 @@ kubectl create secret generic arc-github-token `
 
 ### Runner scale set
 
-Se instalo el runner scale set con el nombre `securekubeops-aks`. Este nombre se usa despues como valor de `runs-on` en GitHub Actions:
+El runner scale set se instala con el nombre `securekubeops-aks`. Este nombre es el que despues se usa en los workflows de GitHub Actions mediante `runs-on`.
 
 ```powershell
 helm install securekubeops-aks `
@@ -756,217 +685,95 @@ helm install securekubeops-aks `
   oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
 ```
 
-Inicialmente se habia usado una URL de repositorio incorrecta. El controller devolvia errores `404 Not Found` al registrar el runner scale set:
-
-```text
-POST https://api.github.com/actions/runner-registration failed(status="404 Not Found")
-```
-
-Se corrigio el valor `githubConfigUrl` para apuntar al repositorio real:
+Comprobar los recursos creados:
 
 ```powershell
-helm upgrade securekubeops-aks `
-  --namespace arc-runners `
-  --set githubConfigUrl="https://github.com/zinedinealvarez/secure-kube-ops" `
-  --set githubConfigSecret=arc-github-token `
-  oci://ghcr.io/actions/actions-runner-controller-charts/gha-runner-scale-set
-```
-
-Los logs del controller confirmaron que el runner scale set se creo o reutilizo correctamente:
-
-```text
-Created/Reused a runner scale set
-Created a new EphemeralRunnerSet resource
-Creating a new AutoscalingListener
-Created listener pod
-```
-
-Se comprobaron los recursos:
-
-```powershell
+kubectl get pods -n arc-systems
 kubectl get autoscalingrunnersets -n arc-runners
 kubectl get ephemeralrunnersets -n arc-runners
 ```
 
-Resultado observado:
+Resultado esperado:
 
 ```text
-NAME                MINIMUM RUNNERS   MAXIMUM RUNNERS   CURRENT RUNNERS   STATE   PENDING RUNNERS   RUNNING RUNNERS   FINISHED RUNNERS   DELETING RUNNERS
-securekubeops-aks
-
-NAME                      DESIREDREPLICAS   CURRENTREPLICAS   PENDING RUNNERS   RUNNING RUNNERS   FINISHED RUNNERS   DELETING RUNNERS
-securekubeops-aks-7qx76                     0
+arc-gha-rs-controller-...          1/1   Running
+securekubeops-aks-...-listener     1/1   Running
 ```
-
-El valor `0` es esperado mientras no haya jobs pendientes, porque ARC crea runners efimeros bajo demanda.
-
-### Workflow de prueba
-
-Se creo un workflow manual para validar que GitHub Actions puede ejecutar jobs dentro de AKS:
 
 ```text
-.github/workflows/arc-runner-test.yml
+autoscalingrunnerset.actions.github.com/securekubeops-aks
 ```
 
-Contenido relevante:
+Mientras no haya jobs pendientes, es normal que no exista ningun runner activo. ARC crea runners efimeros bajo demanda.
+
+### Validacion del runner interno
+
+Para comprobar que GitHub Actions puede ejecutar jobs dentro de AKS, se puede lanzar un workflow con:
 
 ```yaml
-name: ARC Runner Test
-
-on:
-  workflow_dispatch:
-
-jobs:
-  test-runner:
-    name: Test AKS self-hosted runner
-    runs-on: securekubeops-aks
-
-    steps:
-      - name: Show runner context
-        run: |
-          echo "Runner is working inside AKS"
-          hostname
+runs-on: securekubeops-aks
 ```
 
-Se lanzo manualmente desde GitHub Actions contra `main`. Durante la ejecucion, ARC creo un runner efimero en el namespace `arc-runners`:
+Durante la ejecucion, observar los runners efimeros:
 
 ```powershell
 kubectl get pods -n arc-runners -w
 ```
 
-Resultado observado:
+Resultado esperado durante un job:
 
 ```text
-NAME                                   READY   STATUS              RESTARTS   AGE
-securekubeops-aks-7qx76-runner-g74st   0/1     Pending             0          0s
-securekubeops-aks-7qx76-runner-g74st   0/1     ContainerCreating   0          0s
-securekubeops-aks-7qx76-runner-g74st   1/1     Running             0          33s
-securekubeops-aks-7qx76-runner-g74st   0/1     Completed           0          43s
-securekubeops-aks-7qx76-runner-g74st   0/1     Terminating         0          43s
+securekubeops-aks-...-runner-...   Pending
+securekubeops-aks-...-runner-...   Running
+securekubeops-aks-...-runner-...   Completed
+securekubeops-aks-...-runner-...   Terminating
 ```
 
-El workflow termino en GitHub Actions con estado `Success` y una duracion aproximada de 46 segundos.
-
-Con esta prueba queda validada la cadena:
+Con esta comprobacion queda validada la cadena:
 
 ```text
 GitHub Actions -> ARC -> runner efimero en AKS -> job completado
 ```
 
-### Envio de metrica desde runner ARC a Pushgateway interno
+### Envio de metricas a Pushgateway interno
 
-Tras validar que el runner efimero se ejecutaba correctamente dentro de AKS, se creo un workflow manual para probar el envio de metricas hacia Pushgateway usando la red interna del cluster:
-
-```text
-.github/workflows/arc-pushgateway-test.yml
-```
-
-El workflow usa el runner scale set `securekubeops-aks`, genera un archivo `reports/metrics.prom` y lo envia con `curl` a Pushgateway mediante su DNS interno de Kubernetes:
+El runner interno puede alcanzar servicios `ClusterIP` del cluster. Por eso se usa para enviar `metrics.prom` al Pushgateway interno:
 
 ```text
-http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-arc-test
+http://pushgateway.monitoring.svc.cluster.local:9091
 ```
 
-Contenido relevante:
+En los workflows reales, el job `Push Pipeline Metrics`:
 
-```yaml
-name: ARC Pushgateway Test
+- se ejecuta en `securekubeops-aks`;
+- descarga el artifact generado por el job principal;
+- localiza el archivo `metrics.prom`;
+- publica metricas historicas con `instance=${{ github.run_id }}`;
+- sustituye las metricas de findings por el estado mas reciente cuando aplica.
 
-on:
-  workflow_dispatch:
+Ejemplo de envio:
 
-jobs:
-  push-metric:
-    name: Push test metric from AKS runner
-    runs-on: securekubeops-aks
-
-    steps:
-      - name: Generate test metric
-        run: |
-          mkdir -p reports
-          METRIC_TIME="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          cat > reports/metrics.prom <<EOF
-          # HELP securekubeops_arc_pushgateway_test_total Test metric sent from an ARC runner inside AKS.
-          # TYPE securekubeops_arc_pushgateway_test_total counter
-          securekubeops_arc_pushgateway_test_total{source="arc_runner",result="success",time="${METRIC_TIME}"} 1
-          EOF
-          cat reports/metrics.prom
-
-      - name: Push test metric to internal Pushgateway
-        run: |
-          curl --fail --show-error --silent \
-            --data-binary @reports/metrics.prom \
-            http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-arc-test
+```bash
+curl --fail --show-error --silent \
+  --data-binary @artifact/metrics.prom \
+  http://pushgateway.monitoring.svc.cluster.local:9091/metrics/job/securekubeops-pre-analysis/instance/${GITHUB_RUN_ID}
 ```
 
-La metrica se comprobo en Prometheus con la consulta:
-
-```promql
-securekubeops_arc_pushgateway_test_total
-```
-
-Resultado observado:
+La cadena completa queda:
 
 ```text
-securekubeops_arc_pushgateway_test_total{
-  container="pushgateway",
-  endpoint="http",
-  job="securekubeops-arc-test",
-  namespace="monitoring",
-  pod="pushgateway-758745bd7f-fjwlj",
-  result="success",
-  service="pushgateway",
-  source="arc_runner",
-  time="2026-06-21T10:09:25Z"
-} 1
+workflow principal -> artifact metrics.prom -> Push Pipeline Metrics en ARC -> Pushgateway interno -> Prometheus/Grafana
 ```
 
-Esta prueba valida la cadena completa:
+### Comprobacion en Prometheus
 
-```text
-GitHub Actions -> runner efimero en AKS -> Pushgateway interno -> Prometheus
-```
-
-El patron se reutiliza en los workflows reales mediante un job final `Push Pipeline Metrics`. Los jobs principales se mantienen en `ubuntu-latest` y solo la exportacion de metricas se ejecuta en `securekubeops-aks`, descargando el artifact del workflow y enviando `reports/metrics.prom` al Pushgateway interno.
-
-En una ejecucion real de `Pre Analysis` sobre la rama `pre-monitorizar`, el job `Push Pipeline Metrics` se ejecuto correctamente en un runner efimero de AKS:
-
-```text
-Runner name: securekubeops-aks-7qx76-runner-mb747
-Runner group name: Default
-Machine name: securekubeops-aks-7qx76-runner-mb747
-```
-
-El job descargo el artifact generado por `Pre Analysis`:
-
-```text
-Artifact download completed successfully.
-Total of 1 artifact(s) downloaded
-```
-
-Despues ejecuto el envio a Pushgateway interno:
-
-```text
-Run curl --fail --show-error --silent \
-```
-
-El workflow termino con estado correcto:
-
-```text
-Push Pipeline Metrics succeeded
-```
-
-El paso `Report missing metrics artifact` quedo omitido porque el archivo `metrics.prom` si estaba disponible dentro del artifact descargado.
-
-Se comprobo en Prometheus que las metricas reales del workflow estaban disponibles tras el envio automatico.
-
-Consulta:
+Tras ejecutar un workflow, comprobar en Prometheus:
 
 ```promql
 securekubeops_pipeline_execution_total
 ```
 
-Resultado observado:
+Ejemplo de serie esperada:
 
 ```text
 securekubeops_pipeline_execution_total{
@@ -978,13 +785,13 @@ securekubeops_pipeline_execution_total{
 } 1
 ```
 
-Consulta:
+Tambien se puede comprobar el resultado de controles:
 
 ```promql
 securekubeops_pipeline_control_total
 ```
 
-Resultado observado:
+Ejemplo:
 
 ```text
 securekubeops_pipeline_control_total{category="secret_detection", control="gitleaks", job="securekubeops-pre-analysis", result="success", workflow="pre_analysis"} 1
@@ -992,23 +799,16 @@ securekubeops_pipeline_control_total{category="sast", control="semgrep_sast", jo
 securekubeops_pipeline_control_total{category="iac_scan", control="trivy_config", job="securekubeops-pre-analysis", result="success", workflow="pre_analysis"} 1
 ```
 
-Con esta comprobacion queda validada la automatizacion real para `Pre Analysis`:
+### Workflows integrados
 
-```text
-Pre Analysis -> artifact metrics.prom -> Push Pipeline Metrics en ARC -> Pushgateway -> Prometheus
-```
+El patron de exportacion de metricas se aplica a los workflows principales:
 
-Posteriormente se validaron tambien los workflows restantes:
+- `Pre Analysis`;
+- `Branch Policy`;
+- `Image Validation`;
+- `Publish Image`.
 
-- `Branch Policy`: el job `Push Pipeline Metrics` descargo el artifact `securekubeops-branch-policy-results-*`, envio `metrics.prom` a Pushgateway y termino correctamente.
-- `Image Validation`: el workflow mostro los jobs `Image Validation` y `Push Pipeline Metrics` en verde.
-- `Publish Image`: tras el merge de la Pull Request hacia `main`, el workflow `Publish Image` ejecuto `Publish Image` y `Push Pipeline Metrics` correctamente.
-
-Con estas ejecuciones queda validado el patron de exportacion automatica para los workflows principales:
-
-```text
-workflow principal -> artifact metrics.prom -> Push Pipeline Metrics en ARC -> Pushgateway interno -> Prometheus/Grafana
-```
+En todos ellos, los analisis se ejecutan en `ubuntu-latest` y la exportacion de metricas se ejecuta en `securekubeops-aks`.
 
 ## Estado alcanzado
 

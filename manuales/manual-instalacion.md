@@ -227,23 +227,29 @@ Resultado esperado:
 
 ## 10. Abrir las aplicaciones por navegador usando el WAF
 
-Resolver el FQDN:
+Resolver el FQDN del Gateway:
 
 ```powershell
 nslookup $fqdn
 ```
 
-Editar como administrador:
+Abrir PowerShell como administrador y ejecutar:
 
-```text
-C:\Windows\System32\drivers\etc\hosts
+```powershell
+notepad "$env:SystemRoot\System32\drivers\etc\hosts"
 ```
 
-Anadir:
+En el archivo abierto, anadir al final las siguientes lineas, sustituyendo `<IP_DEL_GATEWAY>` por una de las direcciones IP devueltas por `nslookup`:
 
 ```text
 <IP_DEL_GATEWAY> app.securekubeops.local
 <IP_DEL_GATEWAY> juice-shop.securekubeops.local
+```
+
+Guardar el archivo y limpiar la cache DNS:
+
+```powershell
+ipconfig /flushdns
 ```
 
 Abrir:
@@ -270,8 +276,38 @@ Este comando elimina la capa WAF y los recursos asociados, pero no elimina:
 - Grafana;
 - Trivy Operator.
 
+Comprobar que no quedan recursos WAF activos en Kubernetes:
+
+```powershell
+kubectl get applicationloadbalancer,gateway,httproute,healthcheckpolicy,webapplicationfirewallpolicy -A
+```
+
+Comprobar que no queda la WAF Policy en Azure:
+
+```powershell
+az network application-gateway waf-policy list `
+  --resource-group rg-securekubeops-lab `
+  -o table
+```
+
 Si no se va a seguir trabajando, parar AKS:
 
 ```powershell
 az aks stop --resource-group rg-securekubeops-lab --name aks-securekubeops-lab
+```
+
+Comprobar que el cluster ha quedado parado:
+
+```powershell
+az aks show `
+  --resource-group rg-securekubeops-lab `
+  --name aks-securekubeops-lab `
+  --query "powerState.code" `
+  -o tsv
+```
+
+Resultado esperado:
+
+```text
+Stopped
 ```

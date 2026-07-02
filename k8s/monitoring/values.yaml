@@ -24,6 +24,8 @@ grafana:
 prometheus:
   enabled: true
   prometheusSpec:
+    scrapeInterval: 30s
+    evaluationInterval: 30s
     retention: 7d
     storageSpec:
       volumeClaimTemplate:

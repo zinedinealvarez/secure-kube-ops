@@ -161,6 +161,7 @@ Resultado esperado:
 
 - `Gateway` con `PROGRAMMED=True`.
 - `WebApplicationFirewallPolicy` con `DEPLOYMENT=True`.
+- Se crea o reutiliza el workspace `law-securekubeops-waf` para guardar logs del WAF.
 
 ## 7. Probar trafico normal por WAF
 
@@ -196,23 +197,29 @@ Resultado esperado:
 
 ## 8. Abrir WAF en navegador
 
-Resolver el FQDN:
+Resolver el FQDN del Gateway:
 
 ```powershell
 nslookup $fqdn
 ```
 
-Editar como administrador:
+Abrir PowerShell como administrador y ejecutar:
 
-```text
-C:\Windows\System32\drivers\etc\hosts
+```powershell
+notepad "$env:SystemRoot\System32\drivers\etc\hosts"
 ```
 
-Anadir:
+En el archivo abierto, anadir al final las siguientes lineas, sustituyendo `<IP_DEL_GATEWAY>` por una de las direcciones IP devueltas por `nslookup`:
 
 ```text
 <IP_DEL_GATEWAY> app.securekubeops.local
 <IP_DEL_GATEWAY> juice-shop.securekubeops.local
+```
+
+Guardar el archivo y limpiar la cache DNS:
+
+```powershell
+ipconfig /flushdns
 ```
 
 Abrir:
@@ -221,6 +228,12 @@ Abrir:
 http://app.securekubeops.local/health
 http://juice-shop.securekubeops.local/
 ```
+
+Resultado esperado:
+
+- La aplicacion de referencia se abre usando el dominio `app.securekubeops.local`.
+- Juice Shop se abre usando el dominio `juice-shop.securekubeops.local`.
+- En ambos casos el trafico entra por Application Gateway for Containers y pasa por la politica WAF asociada.
 
 ## 9. Probar WAF en modo Detection
 
@@ -247,34 +260,115 @@ Invoke-WebRequest `
 Resultado esperado:
 
 - La peticion puede pasar.
-- Deben generarse logs o metricas del WAF si los diagnosticos estan activos.
+- Deben generarse logs del WAF si los diagnosticos estan activos.
 
 ## 10. Consultar logs del WAF
 
-Abrir el workspace `law-securekubeops-waf` en Azure Portal y ejecutar:
+Abrir Azure Portal y entrar en:
 
-```kusto
-search *
-| where TimeGenerated > ago(24h)
-| take 50
+```text
+Log Analytics workspaces > law-securekubeops-waf > Registros
 ```
 
-Para ver tablas con datos:
+### 10.1. Ver que tablas estan recibiendo datos
+
+Ejecutar:
 
 ```kusto
 union withsource=__TablaOrigen *
-| where TimeGenerated > ago(24h)
+| where TimeGenerated > ago(30m)
 | summarize Count=count() by __TablaOrigen
 | order by Count desc
 ```
 
-Para ver metricas del Traffic Controller:
+Sirve para comprobar que el workspace esta recibiendo datos. Las tablas esperadas para esta prueba son:
+
+| Tabla | Que contiene |
+| --- | --- |
+| `AGCAccessLogs` | Peticiones HTTP/HTTPS procesadas por Application Gateway for Containers. |
+| `AGCFirewallLogs` | Eventos generados por la inspeccion WAF. |
+| `AzureMetrics` | Metricas del recurso gestionado en Azure. |
+
+### 10.2. Ver peticiones recibidas por el Gateway
+
+Ejecutar:
+
+```kusto
+AGCAccessLogs
+| where TimeGenerated > ago(30m)
+| take 50
+```
+
+Sirve para comprobar que las peticiones a la aplicacion y a Juice Shop estan llegando al punto de entrada.
+
+Campos utiles:
+
+| Campo | Uso |
+| --- | --- |
+| `TimeGenerated` | Momento en el que se registro la peticion. |
+| `BackendHost` / `BackendIp` | Destino interno al que se envio la peticion. |
+| `RequestUri` | Ruta solicitada. |
+| `ClientIp` | IP de origen de la peticion. |
+
+### 10.3. Ver eventos detectados por el WAF
+
+Ejecutar:
+
+```kusto
+AGCFirewallLogs
+| where TimeGenerated > ago(30m)
+| take 50
+```
+
+Sirve para comprobar que el WAF ha inspeccionado peticiones y ha generado eventos.
+
+Campos utiles:
+
+| Campo | Uso |
+| --- | --- |
+| `TimeGenerated` | Momento en el que se genero el evento WAF. |
+| `ClientIp` | IP que envio la peticion. |
+| `RequestUri` | Ruta o payload que activo la inspeccion. |
+| `Action` | Accion aplicada por el WAF, por ejemplo deteccion o bloqueo. |
+| `RuleName` / `Message` | Regla o descripcion del motivo de la deteccion. |
+
+Si algun campo no aparece con ese nombre, ejecutar primero `AGCFirewallLogs | take 5` y revisar las columnas disponibles.
+
+### 10.4. Buscar la prueba XSS
+
+Ejecutar:
+
+```kusto
+search "script"
+| where TimeGenerated > ago(30m)
+| take 50
+```
+
+Sirve para localizar la peticion de prueba con `<script>alert(1)</script>`.
+
+### 10.5. Buscar trafico hacia Juice Shop
+
+Ejecutar:
+
+```kusto
+search "juice-shop"
+| where TimeGenerated > ago(30m)
+| take 50
+```
+
+Sirve para localizar registros relacionados con el laboratorio vulnerable.
+
+### 10.6. Ver metricas del recurso de entrada
+
+Ejecutar:
 
 ```kusto
 AzureMetrics
 | where ResourceProvider == "MICROSOFT.SERVICENETWORKING"
 | summarize Count=count() by MetricName
 ```
+
+Sirve para comprobar que Azure esta registrando metricas del recurso de entrada gestionado.
 
 ## 11. Probar WAF en modo Prevention
 
@@ -317,7 +411,14 @@ Comprobar:
 
 ```powershell
 kubectl get applicationloadbalancer,gateway,httproute,healthcheckpolicy,webapplicationfirewallpolicy -A
-az network application-gateway waf-policy list --resource-group rg-securekubeops-lab -o table
+```
+
+Comprobar que no queda la WAF Policy en Azure:
+
+```powershell
+az network application-gateway waf-policy list `
+  --resource-group rg-securekubeops-lab `
+  -o table
 ```
 
 Resultado esperado:
@@ -329,6 +430,22 @@ Resultado esperado:
 
 ```powershell
 az aks stop --resource-group rg-securekubeops-lab --name aks-securekubeops-lab
+```
+
+Comprobar que el cluster ha quedado parado:
+
+```powershell
+az aks show `
+  --resource-group rg-securekubeops-lab `
+  --name aks-securekubeops-lab `
+  --query "powerState.code" `
+  -o tsv
+```
+
+Resultado esperado:
+
+```text
+Stopped
 ```
 
 ## Documentacion tecnica relacionada
