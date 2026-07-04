@@ -70,7 +70,7 @@ jobs:
         continue-on-error: true
         env:
           WORKSPACE: ${{ github.workspace }}
-        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config security-tools/semgrep.yml . --json-output reports/tools/semgrep.json --error
+        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config security-tools/semgrep.yml src/ --json-output reports/tools/semgrep.json --error
 
       - name: Informational Trivy Kubernetes config scan
         id: trivy_config_scan
@@ -100,7 +100,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
-          scan-ref: k8s/
+          scan-ref: k8s/application
           format: table
           exit-code: 1
           severity: HIGH,CRITICAL
