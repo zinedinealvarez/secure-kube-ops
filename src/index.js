@@ -5,8 +5,6 @@ const port = process.env.PORT || 3000;
 
 app.use(express.json());
 
-const controlledSemgrepTest = () => eval('1 + 1');
-
 app.get('/', (req, res) => {
   res.json({
     solution: 'SecureKubeOps',

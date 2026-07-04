@@ -30,7 +30,7 @@ spec:
           image: ghcr.io/zinedinealvarez/secure-kube-ops:c8bb3311048aef2694adb3a5705e20916e58cff5
           imagePullPolicy: IfNotPresent
           securityContext:
-            allowPrivilegeEscalation: false
+            allowPrivilegeEscalation: true
             readOnlyRootFilesystem: true
             capabilities:
               drop:
