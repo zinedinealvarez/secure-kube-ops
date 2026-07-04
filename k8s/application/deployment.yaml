@@ -15,11 +15,32 @@ spec:
       labels:
         app: secure-kube-ops
     spec:
-      imagePullSecrets:
+      automountServiceAccountToken: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile:
+          type: RuntimeDefault
+      imagePullSecrets:                                   
         - name: ghcr-pull-secret
       containers:
         - name: secure-kube-ops-api
           image: ghcr.io/zinedinealvarez/secure-kube-ops:c8bb3311048aef2694adb3a5705e20916e58cff5
           imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
           ports:
             - containerPort: 3000

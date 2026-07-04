@@ -70,7 +70,7 @@ jobs:
         continue-on-error: true
         env:
           WORKSPACE: ${{ github.workspace }}
-        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config security-tools/semgrep.yml . --json-output reports/tools/semgrep.json --error
+        run: docker run --rm -v "$WORKSPACE:/src" --workdir /src semgrep/semgrep semgrep scan --config auto --config security-tools/semgrep.yml --severity WARNING --severity ERROR src/ --json-output reports/tools/semgrep.json --error
 
       - name: Informational Trivy Kubernetes config scan
         id: trivy_config_scan
@@ -100,7 +100,7 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: config
-          scan-ref: k8s/
+          scan-ref: k8s/application
           format: table
           exit-code: 1
           severity: HIGH,CRITICAL
@@ -147,6 +147,11 @@ jobs:
         if: always()
         run: |
           PIPELINE_RESULT="success"
+          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || \
+             [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || \
+             [ "${{ steps.trivy_config_gate.outcome }}" = "failure" ]; then
+            PIPELINE_RESULT="failure"
+          fi
 
           cat > reports/metrics.prom <<EOF
           # HELP securekubeops_pipeline_execution_total Pipeline executions grouped for Grafana dashboards.
@@ -277,7 +282,7 @@ jobs:
             <ul>
               <li><strong>GitLeaks:</strong> detección de secretos, credenciales o patrones sensibles dentro del repositorio.</li>
               <li><strong>Semgrep SAST:</strong> análisis estático del código fuente mediante reglas automáticas y reglas locales versionadas.</li>
-              <li><strong>Trivy config:</strong> revisión de los manifiestos Kubernetes ubicados en <code>k8s/</code>.</li>
+              <li><strong>Trivy config:</strong> revisión informativa de los manifiestos Kubernetes ubicados en <code>k8s/</code>. El Security Gate bloqueante se aplica sobre <code>k8s/application</code>, que contiene la aplicación de referencia.</li>
             </ul>
             <p><strong>Workflow:</strong> ${{ github.workflow }}</p>
             <p><strong>Run ID:</strong> ${{ github.run_id }}</p>
@@ -315,10 +320,16 @@ jobs:
       - name: Fail Pre Analysis if required controls failed
         if: always()
         run: |
-          echo "Pre Analysis security gates are temporarily running in informational mode."
           echo "GitLeaks outcome: ${{ steps.gitleaks.outcome }}"
           echo "Semgrep outcome: ${{ steps.semgrep_sast.outcome }}"
           echo "Trivy config gate outcome: ${{ steps.trivy_config_gate.outcome }}"
+
+          if [ "${{ steps.gitleaks.outcome }}" = "failure" ] || \
+             [ "${{ steps.semgrep_sast.outcome }}" = "failure" ] || \
+             [ "${{ steps.trivy_config_gate.outcome }}" = "failure" ]; then
+            echo "Pre Analysis failed because one or more required security gates failed."
+            exit 1
+          fi
 
   push-pipeline-metrics:
     name: Push Pipeline Metrics

@@ -4,5 +4,5 @@ rules:
     languages:
       - javascript
       - typescript
-    severity: HIGH
+    severity: ERROR
     pattern: eval(...)
