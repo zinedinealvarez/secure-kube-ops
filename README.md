@@ -10,7 +10,7 @@ La solucion parte de cambios en GitHub, ejecuta validaciones automaticas en GitH
 
 - API de referencia en Node.js y Express.
 - Workflows CI/CD con GitHub Actions.
-- Deteccion de secretos con GitLeaks.
+- Deteccion de secretos mediante GitLeaks.
 - Analisis estatico con Semgrep.
 - Analisis de manifiestos e imagenes con Trivy.
 - Publicacion de imagenes en GitHub Container Registry.
